@@ -23,11 +23,11 @@ export default function Portal() {
             <h1>Client portal coming soon.</h1>
             <p>Secure account access, private progress tracking, and document management are currently being developed. At this time, the portal is not open for login, account creation, or document uploads.</p>
             <div className="hero-actions">
-              <Link className="button primary" href="/">
-                Return Home <ArrowRight size={18} />
+              <Link className="button primary" href="/intake">
+                Start Your Reset <ArrowRight size={18} />
               </Link>
-              <Link className="button secondary" href="/#services">
-                Begin Intake
+              <Link className="button secondary" href="/">
+                Return Home
               </Link>
             </div>
             <div className="hero-badges">

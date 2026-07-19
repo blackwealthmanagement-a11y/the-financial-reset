@@ -130,7 +130,7 @@ export default function Home() {
               </h1>
               <p>The Financial Reset helps individuals and entrepreneurs understand their credit, create practical financial goals, and take informed steps toward stronger personal and business finances.</p>
               <div className="hero-actions">
-                <Link className="button primary" href="/portal">
+                <Link className="button primary" href="/intake">
                   Start Your Reset <ArrowRight size={18} />
                 </Link>
                 <a className="button secondary" href="#services">
@@ -284,7 +284,7 @@ export default function Home() {
                 <h2>Ready for your financial reset?</h2>
                 <p>Start with a short intake so we can understand your goals and guide you toward the best next step.</p>
               </div>
-              <Link className="button cta-button" href="/portal">
+              <Link className="button cta-button" href="/intake">
                 Begin Intake <ArrowRight size={18} />
               </Link>
             </div>
@@ -292,7 +292,7 @@ export default function Home() {
         </section>
       </main>
       <Footer />
-      <Link className={`mobile-cta button primary ${showMobileCta ? 'is-visible' : ''}`} href="/portal">
+      <Link className={`mobile-cta button primary ${showMobileCta ? 'is-visible' : ''}`} href="/intake">
         Start Your Reset <ArrowRight size={18} />
       </Link>
     </>

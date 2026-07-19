@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Building2, GraduationCap, LineChart, ShieldCheck, Sparkles } from 'lucide-react';
 import Nav from './components/Nav';
+import Footer from './components/Footer';
 
 const services = [
   {
@@ -290,12 +291,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="footer">
-        <div className="container footer-grid">
-          <div>© 2026 The Financial Reset</div>
-          <div>Operated by Black Wealth Management LLC · Education only · Results vary</div>
-        </div>
-      </footer>
+      <Footer />
       <Link className={`mobile-cta button primary ${showMobileCta ? 'is-visible' : ''}`} href="/portal">
         Start Your Reset <ArrowRight size={18} />
       </Link>

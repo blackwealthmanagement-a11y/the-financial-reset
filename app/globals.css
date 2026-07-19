@@ -630,6 +630,50 @@ h1 {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--muted);
+}
+
+.footer-links a:hover {
+  color: var(--navy);
+}
+
+.page-shell {
+  padding: 72px 0 96px;
+}
+
+.page-section {
+  display: flex;
+  justify-content: center;
+}
+
+.page-card {
+  width: min(760px, 100%);
+  padding: 42px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 45px rgba(11, 31, 51, 0.08);
+}
+
+.page-card h1 {
+  font-size: clamp(2.1rem, 3.5vw, 3rem);
+  margin: 0 0 14px;
+}
+
+.page-card p {
+  color: var(--muted);
+  margin-bottom: 14px;
 }
 
 .mobile-cta {

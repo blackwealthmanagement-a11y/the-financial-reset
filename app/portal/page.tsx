@@ -1,9 +1,42 @@
-'use client';
-import { useState } from 'react';
+import Link from 'next/link';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 import Nav from '../components/Nav';
+import Footer from '../components/Footer';
 
-export default function Portal(){
- const [submitted,setSubmitted]=useState(false);
- async function handleSubmit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setSubmitted(true)}
- return <><Nav/><div className="form-shell">{submitted?<><div className="eyebrow">Intake received</div><h1 style={{fontSize:'3rem'}}>Your reset starts here.</h1><p>Thanks for completing the intake. The next production step is connecting this form to a database, email workflow, and Stripe checkout.</p><a className="button primary" href="/">Back Home</a></>:<><div className="eyebrow">Client intake</div><h1 style={{fontSize:'3rem'}}>Tell us about your goals.</h1><p>This starter form can later be connected to your CRM and automated onboarding.</p><form onSubmit={handleSubmit} className="form-grid"><label className="field"><span>First name</span><input required/></label><label className="field"><span>Last name</span><input required/></label><label className="field"><span>Email</span><input type="email" required/></label><label className="field"><span>Phone</span><input type="tel"/></label><label className="field full"><span>What do you need help with?</span><select required><option value="">Select one</option><option>Personal credit education</option><option>Business credit guidance</option><option>Financial wellness coaching</option><option>Not sure yet</option></select></label><label className="field full"><span>What is your main financial goal?</span><textarea placeholder="Example: prepare for a home purchase, improve credit habits, or build business funding readiness"/></label><div className="field full"><button className="button primary" type="submit">Submit Intake</button></div></form></>}</div></>
+export const metadata = {
+  title: 'Client Portal Coming Soon | The Financial Reset',
+  description: 'Secure client portal access and progress tracking are being developed for launch.',
+  robots: {
+    index: false,
+    follow: false
+  }
+};
+
+export default function Portal() {
+  return (
+    <>
+      <Nav />
+      <main className="page-shell">
+        <section className="container page-section">
+          <div className="page-card">
+            <div className="eyebrow">Client portal</div>
+            <h1>Client portal coming soon.</h1>
+            <p>Secure account access, private progress tracking, and document management are currently being developed. At this time, the portal is not open for login, account creation, or document uploads.</p>
+            <div className="hero-actions">
+              <Link className="button primary" href="/">
+                Return Home <ArrowRight size={18} />
+              </Link>
+              <Link className="button secondary" href="/#services">
+                Begin Intake
+              </Link>
+            </div>
+            <div className="hero-badges">
+              <span><ShieldCheck size={16} /> Secure access development underway</span>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  );
 }

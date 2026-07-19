@@ -2,12 +2,18 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle2, ChevronRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronRight, LoaderCircle } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 
 const STORAGE_KEY = 'the-financial-reset-intake';
 const STEPS = ['Contact', 'Profile', 'Goals'];
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const supabaseClient = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } })
+  : null;
 
 const initialForm = {
   fullName: '',
@@ -23,20 +29,13 @@ const initialForm = {
 
 type FormState = typeof initialForm;
 type StepKey = 0 | 1 | 2;
-
-function createSubmissionPayload(form: FormState) {
-  const submittedAt = new Date().toISOString();
-  return {
-    id: `intake-${submittedAt}`,
-    submittedAt,
-    ...form
-  };
-}
+type SubmissionStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 export default function IntakePage() {
   const [step, setStep] = useState<StepKey>(0);
   const [form, setForm] = useState<FormState>(initialForm);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>('idle');
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -44,9 +43,16 @@ export default function IntakePage() {
   }, []);
 
   const progressValue = useMemo(() => ((step + 1) / STEPS.length) * 100, [step]);
+  const isSubmitting = submissionStatus === 'submitting';
 
   function updateField(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (submitError) {
+      setSubmitError(null);
+    }
+    if (submissionStatus === 'error') {
+      setSubmissionStatus('idle');
+    }
   }
 
   function handleNext() {
@@ -61,23 +67,60 @@ export default function IntakePage() {
     }
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload = createSubmissionPayload(form);
-    const existing = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
-    const submissions = existing ? JSON.parse(existing) : [];
-    submissions.push(payload);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(submissions));
+    if (isSubmitting) {
+      return;
     }
-    setIsSubmitted(true);
+
+    setSubmissionStatus('submitting');
+    setSubmitError(null);
+
+    const submission = {
+      full_name: form.fullName.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      service_interest: form.serviceFocus,
+      estimated_credit_score: form.estimatedCreditScore.trim(),
+      financial_goal: form.biggestFinancialGoal.trim(),
+      credit_challenge: form.biggestCreditChallenge.trim(),
+      preferred_contact_method: form.preferredContactMethod,
+      best_contact_time: form.bestTimeToReachYou.trim(),
+      status: 'new' as const
+    };
+
+    try {
+      if (!supabaseClient) {
+        throw new Error('Supabase client is not configured.');
+      }
+
+      const { error } = await supabaseClient.from('intake_submissions').insert([submission]);
+      if (error) {
+        throw error;
+      }
+
+      if (typeof window !== 'undefined') {
+        const existing = window.localStorage.getItem(STORAGE_KEY);
+        const backups = existing ? JSON.parse(existing) : [];
+        backups.push({ submittedAt: new Date().toISOString(), ...submission });
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(backups));
+      }
+
+      setForm(initialForm);
+      setStep(0);
+      setSubmissionStatus('success');
+    } catch (error) {
+      console.error('Failed to save intake submission:', error);
+      setSubmissionStatus('error');
+      setSubmitError('We could not send your intake right now. Please try again in a moment.');
+    }
   }
 
   if (!isReady) {
     return null;
   }
 
-  if (isSubmitted) {
+  if (submissionStatus === 'success') {
     return (
       <>
         <Nav />
@@ -87,7 +130,7 @@ export default function IntakePage() {
               <div className="success-icon"><CheckCircle2 size={42} /></div>
               <div className="eyebrow">Intake received</div>
               <h1>Your reset request is ready.</h1>
-              <p>Thank you for sharing your goals with us. We have saved your intake locally for now and will connect this form to a secure database as the portal expands.</p>
+              <p>Thank you for sharing your goals with us. Your submission is now securely stored in Supabase and we will review it shortly.</p>
               <div className="hero-actions">
                 <Link className="button primary" href="/">
                   Return Home <ArrowRight size={18} />
@@ -112,7 +155,7 @@ export default function IntakePage() {
           <div className="page-card intake-card">
             <div className="eyebrow">Start your reset</div>
             <h1>Tell us about your goals.</h1>
-            <p>We will use this intake to understand your priorities and recommend the best path forward. Your submission is saved locally for now and can be connected to Supabase or Firebase later.</p>
+            <p>We will use this intake to understand your priorities and recommend the best path forward. Your submission is sent securely to our Supabase database.</p>
 
             <div className="progress-shell" aria-label="Intake progress">
               <div className="progress-track" aria-hidden="true">
@@ -125,7 +168,7 @@ export default function IntakePage() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="intake-form">
+            <form onSubmit={handleSubmit} className="intake-form" aria-busy={isSubmitting}>
               {step === 0 && (
                 <div className="form-grid">
                   <label className="field">
@@ -192,19 +235,34 @@ export default function IntakePage() {
                 </div>
               )}
 
+              {submitError && (
+                <div className="status-banner error" role="alert" aria-live="polite">
+                  {submitError}
+                </div>
+              )}
+
               <div className="form-actions">
                 {step > 0 && (
-                  <button className="button secondary" type="button" onClick={handleBack}>
+                  <button className="button secondary" type="button" onClick={handleBack} disabled={isSubmitting}>
                     Back
                   </button>
                 )}
                 {step < 2 ? (
-                  <button className="button primary" type="button" onClick={handleNext}>
+                  <button className="button primary" type="button" onClick={handleNext} disabled={isSubmitting}>
                     Continue <ChevronRight size={18} />
                   </button>
                 ) : (
-                  <button className="button primary" type="submit">
-                    Submit Intake <ChevronRight size={18} />
+                  <button className="button primary" type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <LoaderCircle size={18} className="spinner" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        Submit Intake <ChevronRight size={18} />
+                      </>
+                    )}
                   </button>
                 )}
               </div>

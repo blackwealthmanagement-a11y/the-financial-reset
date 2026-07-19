@@ -796,6 +796,28 @@ h1 {
   margin-top: 6px;
 }
 
+.button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
+.status-banner {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(11, 31, 51, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--navy);
+  font-size: 0.95rem;
+}
+
+.status-banner.error {
+  border-color: rgba(185, 28, 28, 0.24);
+  background: rgba(254, 242, 242, 0.95);
+  color: #7f1d1d;
+}
+
 .success-card {
   text-align: center;
   display: grid;
@@ -813,6 +835,10 @@ h1 {
   color: var(--gold);
 }
 
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -821,6 +847,15 @@ h1 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

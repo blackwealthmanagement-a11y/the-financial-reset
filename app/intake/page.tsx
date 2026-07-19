@@ -3,17 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, LoaderCircle } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 
 const STORAGE_KEY = 'the-financial-reset-intake';
 const STEPS = ['Contact', 'Profile', 'Goals'];
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-const supabaseClient = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } })
-  : null;
 
 const initialForm = {
   fullName: '',
@@ -27,13 +21,21 @@ const initialForm = {
   bestTimeToReachYou: ''
 };
 
+const initialHiddenFields = {
+  honeypot: '',
+  website: '',
+  company: ''
+};
+
 type FormState = typeof initialForm;
+type HiddenFieldState = typeof initialHiddenFields;
 type StepKey = 0 | 1 | 2;
 type SubmissionStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 export default function IntakePage() {
   const [step, setStep] = useState<StepKey>(0);
   const [form, setForm] = useState<FormState>(initialForm);
+  const [hiddenFields, setHiddenFields] = useState<HiddenFieldState>(initialHiddenFields);
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -86,17 +88,21 @@ export default function IntakePage() {
       credit_challenge: form.biggestCreditChallenge.trim(),
       preferred_contact_method: form.preferredContactMethod,
       best_contact_time: form.bestTimeToReachYou.trim(),
-      status: 'new' as const
+      honeypot: hiddenFields.honeypot,
+      website: hiddenFields.website,
+      company: hiddenFields.company
     };
 
     try {
-      if (!supabaseClient) {
-        throw new Error('Supabase client is not configured.');
-      }
+      const response = await fetch('/api/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submission)
+      });
 
-      const { error } = await supabaseClient.from('intake_submissions').insert([submission]);
-      if (error) {
-        throw error;
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'We could not send your intake right now.');
       }
 
       if (typeof window !== 'undefined') {
@@ -107,12 +113,13 @@ export default function IntakePage() {
       }
 
       setForm(initialForm);
+      setHiddenFields(initialHiddenFields);
       setStep(0);
       setSubmissionStatus('success');
     } catch (error) {
       console.error('Failed to save intake submission:', error);
       setSubmissionStatus('error');
-      setSubmitError('We could not send your intake right now. Please try again in a moment.');
+      setSubmitError(error instanceof Error ? error.message : 'We could not send your intake right now. Please try again in a moment.');
     }
   }
 
@@ -169,6 +176,21 @@ export default function IntakePage() {
             </div>
 
             <form onSubmit={handleSubmit} className="intake-form" aria-busy={isSubmitting}>
+              <div className="visually-hidden" aria-hidden="true">
+                <label>
+                  Leave this empty
+                  <input name="honeypot" tabIndex={-1} autoComplete="off" value={hiddenFields.honeypot} onChange={(event) => setHiddenFields((prev) => ({ ...prev, honeypot: event.target.value }))} />
+                </label>
+                <label>
+                  Leave this empty
+                  <input name="website" tabIndex={-1} autoComplete="off" value={hiddenFields.website} onChange={(event) => setHiddenFields((prev) => ({ ...prev, website: event.target.value }))} />
+                </label>
+                <label>
+                  Leave this empty
+                  <input name="company" tabIndex={-1} autoComplete="off" value={hiddenFields.company} onChange={(event) => setHiddenFields((prev) => ({ ...prev, company: event.target.value }))} />
+                </label>
+              </div>
+
               {step === 0 && (
                 <div className="form-grid">
                   <label className="field">

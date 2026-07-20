@@ -1,24 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../lib/supabase-client';
-
-type LeadRecord = {
-  id?: string;
-  full_name?: string;
-  email?: string;
-  phone?: string;
-  service_interest?: string;
-  estimated_credit_score?: string;
-  financial_goal?: string;
-  credit_challenge?: string;
-  preferred_contact_method?: string;
-  best_contact_time?: string;
-  status?: string;
-  created_at?: string;
-};
+import { LeadForm } from '../../../../components/crm/LeadForm';
+import { LeadNotes } from '../../../../components/crm/LeadNotes';
+import { LeadTimeline } from '../../../../components/crm/LeadTimeline';
+import { useLead } from '../../../../hooks/useLead';
+import { useNotes } from '../../../../hooks/useNotes';
+import { LEAD_TEMPERATURE } from '../../../../lib/constants';
+import { getFollowUpState } from '../../../../utils/date';
+import { formatValue } from '../../../../utils/format';
+import { browserSupabase } from '../../../../lib/supabase/browser';
+import { addLeadActivity, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
+import type { Lead } from '../../../../types/crm';
 
 const statusOptions = [
   'new',
@@ -30,68 +25,53 @@ const statusOptions = [
   'not_qualified'
 ];
 
-function formatValue(value: unknown) {
-  if (value === null || value === undefined || value === '') {
-    return 'Not provided';
+function formatStatus(value: string | undefined) {
+  if (!value) {
+    return 'new';
   }
-  return String(value);
+
+  return value.replace(/_/g, ' ');
+}
+
+function getTemperatureLabel(value: string | null | undefined) {
+  if (!value) {
+    return 'Warm';
+  }
+
+  switch (value.toLowerCase()) {
+    case LEAD_TEMPERATURE.HOT:
+      return 'Hot';
+    case LEAD_TEMPERATURE.COLD:
+      return 'Cold';
+    default:
+      return 'Warm';
+  }
 }
 
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [lead, setLead] = useState<LeadRecord | null>(null);
-  const [status, setStatus] = useState('new');
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<string>('new');
+  const [nextFollowUpDate, setNextFollowUpDate] = useState('');
+  const [temperature, setTemperature] = useState<string>(LEAD_TEMPERATURE.WARM);
+  const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const leadId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { lead, notes, activity, loading, error: leadError, setLead, reload } = useLead(leadId);
+  const { saving: notesSaving, error: noteError, notice: noteNotice, saveNote } = useNotes(leadId);
 
   useEffect(() => {
-    const leadId = Array.isArray(params.id) ? params.id[0] : params.id;
-    if (!leadId) {
-      setError('The requested lead could not be found.');
-      setLoading(false);
-      return;
-    }
+    if (!lead) return;
+    setStatus((lead.status as string) || 'new');
+    setNextFollowUpDate((lead.next_follow_up_date as string) || '');
+    setTemperature((lead.lead_temperature as string) || LEAD_TEMPERATURE.WARM);
+  }, [lead]);
 
-    async function loadLead() {
-      if (!supabase) {
-        setError('Supabase credentials are not configured.');
-        setLoading(false);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace('/admin/login?next=/crm');
-        return;
-      }
-
-      const { data, error: leadError } = await supabase
-        .from('intake_submissions')
-        .select('*')
-        .eq('id', leadId)
-        .single();
-
-      if (leadError || !data) {
-        setError('We could not load this lead.');
-        setLoading(false);
-        return;
-      }
-
-      setLead(data as LeadRecord);
-      setStatus((data.status as string) || 'new');
-      setLoading(false);
-    }
-
-    loadLead();
-  }, [params.id, router]);
-
-  async function handleStatusUpdate(event: React.ChangeEvent<HTMLSelectElement>) {
+  async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
     const nextStatus = event.target.value;
-    const leadId = Array.isArray(params.id) ? params.id[0] : params.id;
-    if (!leadId || !supabase) {
+    if (!leadId || !browserSupabase) {
       return;
     }
 
@@ -99,20 +79,67 @@ export default function LeadDetailPage() {
     setNotice(null);
     setError(null);
 
-    const { error: updateError } = await supabase
-      .from('intake_submissions')
-      .update({ status: nextStatus })
-      .eq('id', leadId);
-
-    setSaving(false);
+    const { error: updateError } = await updateLeadStatus(leadId, nextStatus);
     if (updateError) {
+      setSaving(false);
       setError('We could not update the lead status.');
       return;
     }
 
+    const activityMessage = `Status updated to ${formatStatus(nextStatus)}.`;
+    await addLeadActivity(leadId, 'status', activityMessage);
+
+    setSaving(false);
     setStatus(nextStatus);
-    setLead((current) => current ? { ...current, status: nextStatus } : current);
+    setLead((current) => current ? { ...current, status: nextStatus } as Lead : current);
     setNotice('Lead status updated.');
+    await reload();
+  }
+
+  async function handleFollowUpSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!leadId || !browserSupabase) {
+      return;
+    }
+
+    setSaving(true);
+    setNotice(null);
+    setError(null);
+
+    const payload: Record<string, string> = {};
+    if (nextFollowUpDate) {
+      payload.next_follow_up_date = nextFollowUpDate;
+    }
+    if (temperature) {
+      payload.lead_temperature = temperature;
+    }
+
+    if (Object.keys(payload).length > 0) {
+      const { error: updateError } = await updateLeadFollowUp(leadId, payload);
+      if (updateError) {
+        setSaving(false);
+        setError('We could not save the follow-up details.');
+        return;
+      }
+    }
+
+    const followUpMessage = nextFollowUpDate
+      ? `Next follow-up date set to ${nextFollowUpDate} and temperature set to ${getTemperatureLabel(temperature)}.`
+      : `Lead temperature updated to ${getTemperatureLabel(temperature)}.`;
+
+    await addLeadActivity(leadId, 'follow_up', followUpMessage);
+
+    setSaving(false);
+    setNotice('Follow-up details saved.');
+    await reload();
+  }
+
+  async function handleAddNote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await saveNote(noteText, async () => {
+      setNoteText('');
+      await reload();
+    });
   }
 
   if (loading) {
@@ -128,13 +155,13 @@ export default function LeadDetailPage() {
     );
   }
 
-  if (error || !lead) {
+  if (leadError || !lead) {
     return (
       <main className="page-shell">
         <section className="container page-section">
           <div className="page-card">
             <div className="eyebrow">Lead unavailable</div>
-            <h1>{error || 'We could not load this lead.'}</h1>
+            <h1>{leadError || 'We could not load this lead.'}</h1>
             <Link className="button secondary" href="/crm">
               Back to CRM
             </Link>
@@ -143,6 +170,8 @@ export default function LeadDetailPage() {
       </main>
     );
   }
+
+  const isOverdue = getFollowUpState(lead.next_follow_up_date, lead.status).isOverdue;
 
   return (
     <main className="page-shell">
@@ -172,11 +201,12 @@ export default function LeadDetailPage() {
             {notice ? <div className="status-banner" role="status">{notice}</div> : null}
           </div>
 
-          {error ? (
+          {(error || noteError) ? (
             <div className="status-banner error" role="alert" aria-live="polite">
-              {error}
+              {error || noteError}
             </div>
           ) : null}
+          {noteNotice ? <div className="status-banner" role="status">{noteNotice}</div> : null}
 
           <div className="crm-detail-grid">
             <div className="crm-field-card">
@@ -197,9 +227,29 @@ export default function LeadDetailPage() {
             <div className="crm-field-card full-card">
               <h3>Lead details</h3>
               <p><strong>Status:</strong> {formatValue(lead.status)}</p>
+              <p><strong>Next follow-up:</strong> {lead.next_follow_up_date ? new Date(lead.next_follow_up_date).toLocaleDateString() : 'Not set'}</p>
+              <p><strong>Lead temperature:</strong> {getTemperatureLabel(lead.lead_temperature)}</p>
               <p><strong>Submission date:</strong> {lead.created_at ? new Date(lead.created_at).toLocaleString() : 'Not provided'}</p>
               <p><strong>Lead id:</strong> {formatValue(lead.id)}</p>
+              {isOverdue ? <p className="crm-followup-pill overdue">Overdue follow-up</p> : null}
             </div>
+
+            <LeadForm
+              nextFollowUpDate={nextFollowUpDate}
+              setNextFollowUpDate={setNextFollowUpDate}
+              temperature={temperature}
+              setTemperature={setTemperature}
+              saving={saving}
+              onSubmit={handleFollowUpSave}
+            />
+            <LeadNotes
+              notes={notes}
+              noteText={noteText}
+              setNoteText={setNoteText}
+              saving={notesSaving}
+              onAddNote={handleAddNote}
+            />
+            <LeadTimeline activity={activity} />
           </div>
         </div>
       </section>

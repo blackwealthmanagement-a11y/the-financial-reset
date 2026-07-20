@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase-client';
+import { supabase } from '../../lib/supabase/browser';
 
-export default function CRMLayout({ children }: { children: React.ReactNode }) {
+export default function CRMLayout({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const router = useRouter();
   const pathname = usePathname();

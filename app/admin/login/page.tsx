@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '../../lib/supabase-client';
+import { supabase } from '../../../lib/supabase/browser';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -34,7 +34,7 @@ function LoginForm() {
     };
   }, [nextPath, router]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) {
       setError('Supabase credentials are not configured for this environment.');

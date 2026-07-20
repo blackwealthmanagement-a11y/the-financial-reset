@@ -803,6 +803,116 @@ h1 {
   box-shadow: none;
 }
 
+.auth-card,
+.crm-dashboard-card,
+.crm-detail-card {
+  display: grid;
+  gap: 20px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.crm-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.crm-toolbar-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.crm-table-shell {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.crm-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.crm-table th,
+.crm-table td {
+  padding: 15px 14px;
+  border-bottom: 1px solid rgba(11, 31, 51, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.crm-table thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  background: rgba(247, 244, 238, 0.8);
+}
+
+.crm-link {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.crm-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(201, 161, 74, 0.16);
+  color: var(--navy);
+  font-size: 0.82rem;
+  text-transform: capitalize;
+}
+
+.crm-empty-state {
+  padding: 28px;
+  border-radius: 18px;
+  text-align: center;
+  border: 1px dashed rgba(11, 31, 51, 0.15);
+  background: rgba(247, 244, 238, 0.5);
+}
+
+.crm-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.crm-field-card {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.crm-field-card.full-card {
+  grid-column: 1 / -1;
+}
+
+.crm-status-row {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crm-loading-card {
+  text-align: center;
+  display: grid;
+  gap: 10px;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -1037,6 +1147,14 @@ h1 {
   .hero-metrics {
     grid-template-columns: 1fr;
   }
+
+  .crm-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-toolbar-actions {
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1065,6 +1183,21 @@ h1 {
   .steps,
   .testimonial-grid {
     gap: 14px;
+  }
+
+  .crm-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .crm-toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .crm-table th,
+  .crm-table td {
+    padding: 12px 10px;
   }
 
   .card,

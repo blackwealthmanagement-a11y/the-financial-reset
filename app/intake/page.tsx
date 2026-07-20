@@ -137,7 +137,7 @@ export default function IntakePage() {
               <div className="success-icon"><CheckCircle2 size={42} /></div>
               <div className="eyebrow">Intake received</div>
               <h1>Your reset request is ready.</h1>
-              <p>Thank you for sharing your goals with us. Your submission is now securely stored in Supabase and we will review it shortly.</p>
+              <p>Thank you for sharing your goals with us. Your submission has been received securely, and our team will review it shortly.</p>
               <div className="hero-actions">
                 <Link className="button primary" href="/">
                   Return Home <ArrowRight size={18} />

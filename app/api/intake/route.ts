@@ -226,6 +226,13 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (error) {
+    console.error('Supabase intake insert failed:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    });
+
     return NextResponse.json({ error: 'We could not save your intake right now.' }, { status: 500 });
   }
 

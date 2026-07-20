@@ -1,5 +1,7 @@
+import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
@@ -54,6 +56,110 @@ function normalizePreferredContactMethod(value: string) {
   return allowed.includes(cleaned) ? cleaned : 'Email';
 }
 
+function buildIdempotencyKey(payload: Record<string, string>) {
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Pending' : date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+async function sendIntakeEmails(payload: {
+  fullName: string;
+  email: string;
+  phone: string;
+  serviceInterest: string;
+  estimatedCreditScore: string;
+  financialGoal: string;
+  creditChallenge: string;
+  preferredContactMethod: string;
+  bestContactTime: string;
+  submittedAt: string;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const notificationEmail = process.env.INTAKE_NOTIFICATION_EMAIL;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !notificationEmail || !fromEmail) {
+    return { ok: false, reason: 'missing-config' as const };
+  }
+
+  const resend = new Resend(apiKey);
+  const idempotencyKey = buildIdempotencyKey({
+    fullName: payload.fullName,
+    email: payload.email,
+    phone: payload.phone,
+    serviceInterest: payload.serviceInterest,
+    financialGoal: payload.financialGoal,
+    creditChallenge: payload.creditChallenge,
+    preferredContactMethod: payload.preferredContactMethod,
+    bestContactTime: payload.bestContactTime,
+    submittedAt: payload.submittedAt
+  });
+
+  const ownerSubject = `New intake submission from ${payload.fullName}`;
+  const ownerHtml = `
+    <div style="font-family:Inter,Arial,sans-serif;background:#F7F4EE;padding:24px;color:#0B1F33;">
+      <div style="max-width:720px;margin:0 auto;background:#ffffff;border:1px solid #E8E1D4;border-radius:24px;padding:24px;">
+        <h2 style="margin:0 0 12px;color:#0B1F33;">New intake received</h2>
+        <p style="margin:0 0 16px;color:#5F6D7A;">A new lead has entered the intake workflow.</p>
+        <ul style="padding-left:18px;color:#0B1F33;line-height:1.8;">
+          <li><strong>Full name:</strong> ${payload.fullName}</li>
+          <li><strong>Email:</strong> ${payload.email}</li>
+          <li><strong>Phone:</strong> ${payload.phone || 'Not provided'}</li>
+          <li><strong>Service interest:</strong> ${payload.serviceInterest}</li>
+          <li><strong>Estimated credit score range:</strong> ${payload.estimatedCreditScore || 'Not provided'}</li>
+          <li><strong>Financial goal:</strong> ${payload.financialGoal}</li>
+          <li><strong>Credit challenge:</strong> ${payload.creditChallenge || 'Not provided'}</li>
+          <li><strong>Preferred contact method:</strong> ${payload.preferredContactMethod}</li>
+          <li><strong>Best contact time:</strong> ${payload.bestContactTime || 'Not provided'}</li>
+          <li><strong>Submission timestamp:</strong> ${formatTimestamp(payload.submittedAt)}</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  const prospectFirstName = payload.fullName.split(' ')[0] || 'friend';
+  const prospectSubject = 'We received your intake request';
+  const prospectHtml = `
+    <div style="font-family:Inter,Arial,sans-serif;background:#F7F4EE;padding:24px;color:#0B1F33;">
+      <div style="max-width:720px;margin:0 auto;background:linear-gradient(135deg,#ffffff,#F7F4EE);border:1px solid #E8E1D4;border-radius:24px;padding:24px;">
+        <div style="display:inline-block;padding:8px 12px;border-radius:999px;background:#0B1F33;color:#ffffff;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:16px;">The Financial Reset</div>
+        <h2 style="margin:0 0 12px;color:#0B1F33;">Hello ${prospectFirstName},</h2>
+        <p style="margin:0 0 12px;color:#5F6D7A;line-height:1.7;">Thank you for sharing your goals with us. Your intake has been received securely, and our team will review it shortly.</p>
+        <p style="margin:0 0 12px;color:#5F6D7A;line-height:1.7;">We will review the information you shared and follow up with next steps that make sense for your circumstances. The Financial Reset provides education and general financial wellness guidance, and results vary and are not guaranteed.</p>
+        <p style="margin:16px 0 0;color:#C9A14A;font-weight:700;">Thank you for taking the first step.</p>
+      </div>
+    </div>
+  `;
+
+  const [ownerResult, prospectResult] = await Promise.allSettled([
+    resend.emails.send({
+      from: fromEmail,
+      to: [notificationEmail],
+      subject: ownerSubject,
+      html: ownerHtml,
+      headers: { 'Idempotency-Key': `${idempotencyKey}-owner` }
+    }),
+    resend.emails.send({
+      from: fromEmail,
+      to: [payload.email],
+      subject: prospectSubject,
+      html: prospectHtml,
+      headers: { 'Idempotency-Key': `${idempotencyKey}-prospect` }
+    })
+  ]);
+
+  const failures = [ownerResult, prospectResult].filter((result) => result.status === 'rejected');
+  if (failures.length > 0) {
+    console.error('Intake email delivery failed.');
+    return { ok: false, reason: 'delivery-failed' as const };
+  }
+
+  return { ok: true };
+}
+
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   if (isRateLimited(ip)) {
@@ -103,6 +209,7 @@ export async function POST(request: NextRequest) {
     auth: { persistSession: false }
   });
 
+  const submittedAt = new Date().toISOString();
   const { error } = await supabase.from('intake_submissions').insert([
     {
       full_name: fullName,
@@ -120,6 +227,23 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: 'We could not save your intake right now.' }, { status: 500 });
+  }
+
+  const emailResult = await sendIntakeEmails({
+    fullName,
+    email,
+    phone,
+    serviceInterest,
+    estimatedCreditScore,
+    financialGoal,
+    creditChallenge,
+    preferredContactMethod,
+    bestContactTime,
+    submittedAt
+  });
+
+  if (emailResult.ok === false && emailResult.reason === 'delivery-failed') {
+    console.error('Intake email delivery failed after the database insert.');
   }
 
   return NextResponse.json({ success: true, message: 'Submission received.' }, { status: 201 });

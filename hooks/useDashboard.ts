@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import type { Lead } from '../types/crm';
+import type { TaskRow } from '../types/task';
 import { LEAD_STATUS } from '../lib/constants';
 import { CONSULTATION_STATUS } from '../constants/consultation';
 
-export function useDashboard(rows: Lead[]) {
+export function useDashboard(rows: Lead[], tasks: TaskRow[] = []) {
   return useMemo(() => {
     const counts = {
       new: 0,
@@ -13,7 +14,11 @@ export function useDashboard(rows: Lead[]) {
       consultations_today: 0,
       upcoming_consultations: 0,
       completed_this_month: 0,
-      no_shows: 0
+      no_shows: 0,
+      todays_tasks: 0,
+      overdue_tasks: 0,
+      completed_today: 0,
+      high_priority_tasks: 0
     };
 
     const today = new Date();
@@ -49,6 +54,33 @@ export function useDashboard(rows: Lead[]) {
       }
     });
 
+    tasks.forEach((task) => {
+      const dueDate = task.due_date ? new Date(task.due_date) : null;
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+
+      if (dueDate && dueDate >= todayStart && dueDate <= todayEnd) {
+        counts.todays_tasks += 1;
+      }
+
+      if (dueDate && dueDate < todayStart && !task.completed) {
+        counts.overdue_tasks += 1;
+      }
+
+      if (task.completed && task.completed_at) {
+        const completedAt = new Date(task.completed_at);
+        if (completedAt >= todayStart && completedAt <= todayEnd) {
+          counts.completed_today += 1;
+        }
+      }
+
+      if (task.priority === 'High' && !task.completed) {
+        counts.high_priority_tasks += 1;
+      }
+    });
+
     return counts;
-  }, [rows]);
+  }, [rows, tasks]);
 }

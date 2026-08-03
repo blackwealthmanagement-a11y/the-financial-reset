@@ -7,15 +7,19 @@ import { ConsultationCard } from '../../../../components/crm/ConsultationCard';
 import { LeadForm } from '../../../../components/crm/LeadForm';
 import { LeadNotes } from '../../../../components/crm/LeadNotes';
 import { LeadTimeline } from '../../../../components/crm/LeadTimeline';
+import { TaskList } from '../../../../components/crm/TaskList';
 import { useLead } from '../../../../hooks/useLead';
 import { useNotes } from '../../../../hooks/useNotes';
+import { useTasks } from '../../../../hooks/useTasks';
 import { LEAD_TEMPERATURE } from '../../../../lib/constants';
 import { CONSULTATION_OUTCOME, CONSULTATION_STATUS } from '../../../../constants/consultation';
 import { getFollowUpState } from '../../../../utils/date';
 import { formatValue } from '../../../../utils/format';
 import { browserSupabase } from '../../../../lib/supabase/browser';
 import { addLeadActivity, updateConsultationDetails, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
+import { createTask, deleteTask, updateTask } from '../../../../services/task.service';
 import type { Lead } from '../../../../types/crm';
+import type { TaskRow } from '../../../../types/task';
 
 const statusOptions = [
   'new',
@@ -61,12 +65,19 @@ export default function LeadDetailPage() {
   const [consultationDate, setConsultationDate] = useState('');
   const [consultationOutcome, setConsultationOutcome] = useState('');
   const [consultationSummary, setConsultationSummary] = useState('');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskPriority, setTaskPriority] = useState('Medium');
+  const [taskStatus, setTaskStatus] = useState('Pending');
+  const [taskDueDate, setTaskDueDate] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const leadId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { lead, notes, activity, loading, error: leadError, setLead, reload } = useLead(leadId);
   const { saving: notesSaving, error: noteError, notice: noteNotice, saveNote } = useNotes(leadId);
+  const { tasks, loading: tasksLoading, error: tasksError, reload: reloadTasks, setTasks } = useTasks(leadId);
 
   useEffect(() => {
     if (!lead) return;
@@ -150,6 +161,114 @@ export default function LeadDetailPage() {
       setNoteText('');
       await reload();
     });
+  }
+
+  async function handleTaskSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!leadId || !browserSupabase || !taskTitle.trim()) {
+      return;
+    }
+
+    setSaving(true);
+    setNotice(null);
+    setError(null);
+
+    const taskCompletionState = taskStatus === 'Completed'
+      ? { completed: true, completed_at: new Date().toISOString(), status: 'Completed' }
+      : { completed: false, completed_at: null, status: taskStatus };
+
+    const payload = {
+      title: taskTitle.trim(),
+      description: taskDescription.trim() || null,
+      priority: taskPriority,
+      due_date: taskDueDate ? `${taskDueDate}T00:00:00.000Z` : null,
+      ...taskCompletionState,
+    };
+
+    if (editingTaskId) {
+      const { error: updateError } = await updateTask(editingTaskId, payload);
+      if (updateError) {
+        setSaving(false);
+        setError('We could not update the task.');
+        return;
+      }
+      setNotice('Task updated.');
+    } else {
+      const { error: createError } = await createTask(leadId, payload);
+      if (createError) {
+        setSaving(false);
+        setError('We could not create the task.');
+        return;
+      }
+      setNotice('Task created.');
+    }
+
+    setTaskTitle('');
+    setTaskDescription('');
+    setTaskPriority('Medium');
+    setTaskStatus('Pending');
+    setTaskDueDate('');
+    setEditingTaskId(null);
+    setSaving(false);
+    await reloadTasks();
+  }
+
+  function handleTaskEdit(task: TaskRow) {
+    setEditingTaskId(task.id);
+    setTaskTitle(task.title);
+    setTaskDescription(task.description || '');
+    setTaskPriority(task.priority);
+    setTaskStatus(task.status);
+    setTaskDueDate(task.due_date ? task.due_date.slice(0, 10) : '');
+  }
+
+  async function handleTaskComplete(task: TaskRow) {
+    if (!browserSupabase) {
+      return;
+    }
+
+    setSaving(true);
+    setNotice(null);
+    setError(null);
+
+    const nextCompleted = !task.completed;
+    const payload = {
+      completed: nextCompleted,
+      completed_at: nextCompleted ? new Date().toISOString() : null,
+      status: nextCompleted ? 'Completed' : 'Pending',
+    };
+
+    const { error: updateError } = await updateTask(task.id, payload);
+    if (updateError) {
+      setSaving(false);
+      setError('We could not update the task status.');
+      return;
+    }
+
+    setNotice(nextCompleted ? 'Task marked complete.' : 'Task reopened.');
+    setSaving(false);
+    await reloadTasks();
+  }
+
+  async function handleTaskDelete(task: TaskRow) {
+    if (!browserSupabase) {
+      return;
+    }
+
+    setSaving(true);
+    setNotice(null);
+    setError(null);
+
+    const { error: deleteError } = await deleteTask(task.id);
+    if (deleteError) {
+      setSaving(false);
+      setError('We could not delete the task.');
+      return;
+    }
+
+    setNotice('Task deleted.');
+    setSaving(false);
+    await reloadTasks();
   }
 
   async function handleConsultationSave(event: FormEvent<HTMLFormElement>) {
@@ -318,6 +437,33 @@ export default function LeadDetailPage() {
               setNoteText={setNoteText}
               saving={notesSaving}
               onAddNote={handleAddNote}
+            />
+            <TaskList
+              tasks={tasks}
+              editingTaskId={editingTaskId}
+              title={taskTitle}
+              description={taskDescription}
+              priority={taskPriority}
+              status={taskStatus}
+              dueDate={taskDueDate}
+              saving={saving}
+              onTitleChange={setTaskTitle}
+              onDescriptionChange={setTaskDescription}
+              onPriorityChange={setTaskPriority}
+              onStatusChange={setTaskStatus}
+              onDueDateChange={setTaskDueDate}
+              onSubmit={handleTaskSave}
+              onCancel={() => {
+                setEditingTaskId(null);
+                setTaskTitle('');
+                setTaskDescription('');
+                setTaskPriority('Medium');
+                setTaskStatus('Pending');
+                setTaskDueDate('');
+              }}
+              onEdit={handleTaskEdit}
+              onComplete={handleTaskComplete}
+              onDelete={handleTaskDelete}
             />
             <LeadTimeline activity={activity} />
           </div>

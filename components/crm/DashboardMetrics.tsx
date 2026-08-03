@@ -8,6 +8,10 @@ interface DashboardMetricsProps {
     upcoming_consultations: number;
     completed_this_month: number;
     no_shows: number;
+    todays_tasks: number;
+    overdue_tasks: number;
+    completed_today: number;
+    high_priority_tasks: number;
   };
 }
 
@@ -45,6 +49,22 @@ export function DashboardMetrics({ metrics }: DashboardMetricsProps) {
       <div className="crm-metric-card">
         <span>No shows</span>
         <strong>{metrics.no_shows}</strong>
+      </div>
+      <div className="crm-metric-card">
+        <span>Today&apos;s tasks</span>
+        <strong>{metrics.todays_tasks}</strong>
+      </div>
+      <div className="crm-metric-card">
+        <span>Overdue tasks</span>
+        <strong>{metrics.overdue_tasks}</strong>
+      </div>
+      <div className="crm-metric-card">
+        <span>Completed today</span>
+        <strong>{metrics.completed_today}</strong>
+      </div>
+      <div className="crm-metric-card">
+        <span>High priority tasks</span>
+        <strong>{metrics.high_priority_tasks}</strong>
       </div>
     </div>
   );

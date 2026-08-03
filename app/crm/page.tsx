@@ -1,15 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardMetrics } from '../../components/crm/DashboardMetrics';
 import { FollowUpWidget } from '../../components/crm/FollowUpWidget';
 import { LeadFilters } from '../../components/crm/LeadFilters';
 import { LeadTable } from '../../components/crm/LeadTable';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useLeads } from '../../hooks/useLeads';
+import { getTasks } from '../../services/task.service';
+import type { TaskRow } from '../../types/task';
 
 export default function CRMPage() {
   const { rows, loading, error } = useLeads();
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [search, setSearch] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -32,7 +35,26 @@ export default function CRMPage() {
     });
   }, [rows, search, serviceFilter, statusFilter, sortOrder]);
 
-  const metrics = useDashboard(rows);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTasks() {
+      const { data } = await getTasks();
+      if (!isMounted) {
+        return;
+      }
+
+      setTasks(data || []);
+    }
+
+    loadTasks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const metrics = useDashboard(rows, tasks);
 
   return (
     <main className="page-shell">

@@ -18,6 +18,10 @@ export interface Lead {
   created_at: string | null;
   next_follow_up_date: string | null;
   lead_temperature: LeadTemperature | string | null;
+  consultation_status: string | null;
+  consultation_date: string | null;
+  consultation_outcome: string | null;
+  consultation_summary: string | null;
 }
 
 export interface LeadNote {

@@ -3,16 +3,18 @@
 import Link from 'next/link';
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ConsultationCard } from '../../../../components/crm/ConsultationCard';
 import { LeadForm } from '../../../../components/crm/LeadForm';
 import { LeadNotes } from '../../../../components/crm/LeadNotes';
 import { LeadTimeline } from '../../../../components/crm/LeadTimeline';
 import { useLead } from '../../../../hooks/useLead';
 import { useNotes } from '../../../../hooks/useNotes';
 import { LEAD_TEMPERATURE } from '../../../../lib/constants';
+import { CONSULTATION_OUTCOME, CONSULTATION_STATUS } from '../../../../constants/consultation';
 import { getFollowUpState } from '../../../../utils/date';
 import { formatValue } from '../../../../utils/format';
 import { browserSupabase } from '../../../../lib/supabase/browser';
-import { addLeadActivity, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
+import { addLeadActivity, updateConsultationDetails, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
 import type { Lead } from '../../../../types/crm';
 
 const statusOptions = [
@@ -55,6 +57,10 @@ export default function LeadDetailPage() {
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [temperature, setTemperature] = useState<string>(LEAD_TEMPERATURE.WARM);
   const [noteText, setNoteText] = useState('');
+  const [consultationStatus, setConsultationStatus] = useState<string>(CONSULTATION_STATUS.NOT_BOOKED);
+  const [consultationDate, setConsultationDate] = useState('');
+  const [consultationOutcome, setConsultationOutcome] = useState('');
+  const [consultationSummary, setConsultationSummary] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -67,6 +73,10 @@ export default function LeadDetailPage() {
     setStatus((lead.status as string) || 'new');
     setNextFollowUpDate((lead.next_follow_up_date as string) || '');
     setTemperature((lead.lead_temperature as string) || LEAD_TEMPERATURE.WARM);
+    setConsultationStatus((lead.consultation_status as string) || CONSULTATION_STATUS.NOT_BOOKED);
+    setConsultationDate((lead.consultation_date as string) || '');
+    setConsultationOutcome((lead.consultation_outcome as string) || '');
+    setConsultationSummary((lead.consultation_summary as string) || '');
   }, [lead]);
 
   async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
@@ -140,6 +150,54 @@ export default function LeadDetailPage() {
       setNoteText('');
       await reload();
     });
+  }
+
+  async function handleConsultationSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!leadId || !browserSupabase) {
+      return;
+    }
+
+    setSaving(true);
+    setNotice(null);
+    setError(null);
+
+    const payload: Record<string, string | null> = {};
+    payload.consultation_status = consultationStatus;
+    payload.consultation_date = consultationDate || null;
+    payload.consultation_outcome = consultationOutcome || null;
+    payload.consultation_summary = consultationSummary || null;
+
+    const { error: updateError } = await updateConsultationDetails(leadId, payload);
+    if (updateError) {
+      setSaving(false);
+      setError('We could not save the consultation details.');
+      return;
+    }
+
+    const previousLead = lead;
+    const previousStatus = previousLead?.consultation_status || CONSULTATION_STATUS.NOT_BOOKED;
+    const previousOutcome = previousLead?.consultation_outcome || '';
+    const previousDate = previousLead?.consultation_date || '';
+
+    const activityParts: string[] = [];
+    if (consultationStatus !== previousStatus) {
+      activityParts.push(`Consultation status updated to ${consultationStatus}.`);
+    }
+    if (consultationOutcome !== previousOutcome) {
+      activityParts.push(`Consultation outcome updated to ${consultationOutcome || 'Not set'}.`);
+    }
+    if (consultationDate !== previousDate) {
+      activityParts.push(`Consultation date updated to ${consultationDate || 'Not set'}.`);
+    }
+
+    if (activityParts.length > 0) {
+      await addLeadActivity(leadId, 'consultation', activityParts.join(' '));
+    }
+
+    setSaving(false);
+    setNotice('Consultation details saved.');
+    await reload();
   }
 
   if (loading) {
@@ -234,6 +292,18 @@ export default function LeadDetailPage() {
               {isOverdue ? <p className="crm-followup-pill overdue">Overdue follow-up</p> : null}
             </div>
 
+            <ConsultationCard
+              consultationStatus={consultationStatus}
+              consultationDate={consultationDate}
+              consultationOutcome={consultationOutcome}
+              consultationSummary={consultationSummary}
+              onStatusChange={setConsultationStatus}
+              onDateChange={setConsultationDate}
+              onOutcomeChange={setConsultationOutcome}
+              onSummaryChange={setConsultationSummary}
+              saving={saving}
+              onSubmit={handleConsultationSave}
+            />
             <LeadForm
               nextFollowUpDate={nextFollowUpDate}
               setNextFollowUpDate={setNextFollowUpDate}

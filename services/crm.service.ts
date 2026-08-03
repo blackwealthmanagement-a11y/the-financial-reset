@@ -39,6 +39,19 @@ export async function updateLeadFollowUp(leadId: string, payload: { next_follow_
   return browserSupabase.from('intake_submissions').update(payload).eq('id', leadId);
 }
 
+export async function updateConsultationDetails(leadId: string, payload: {
+  consultation_status?: string;
+  consultation_date?: string | null;
+  consultation_outcome?: string | null;
+  consultation_summary?: string | null;
+}) {
+  if (!browserSupabase) {
+    return { error: new Error('Supabase unavailable') };
+  }
+
+  return browserSupabase.from('intake_submissions').update(payload).eq('id', leadId);
+}
+
 export async function getLeadNotes(leadId: string) {
   if (!browserSupabase) {
     return { data: [] as LeadNote[], error: null };

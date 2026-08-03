@@ -142,6 +142,9 @@ export default function IntakePage() {
                 <Link className="button primary" href="/">
                   Return Home <ArrowRight size={18} />
                 </Link>
+                <Link className="button secondary" href="/book">
+                  Book a Consultation <ArrowRight size={18} />
+                </Link>
                 <Link className="button secondary" href="/privacy">
                   Review Privacy Policy
                 </Link>

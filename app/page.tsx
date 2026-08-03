@@ -284,17 +284,27 @@ export default function Home() {
                 <h2>Ready for your financial reset?</h2>
                 <p>Start with a short intake so we can understand your goals and guide you toward the best next step.</p>
               </div>
-              <Link className="button cta-button" href="/intake">
-                Begin Intake <ArrowRight size={18} />
-              </Link>
+              <div className="cta-actions">
+                <Link className="button cta-button" href="/intake">
+                  Begin Intake <ArrowRight size={18} />
+                </Link>
+                <Link className="button secondary" href="/book">
+                  Book a Consultation <ArrowRight size={18} />
+                </Link>
+              </div>
             </div>
           </div>
         </section>
       </main>
       <Footer />
-      <Link className={`mobile-cta button primary ${showMobileCta ? 'is-visible' : ''}`} href="/intake">
-        Start Your Reset <ArrowRight size={18} />
-      </Link>
+      <div className="mobile-cta-group">
+        <Link className={`mobile-cta button primary ${showMobileCta ? 'is-visible' : ''}`} href="/intake">
+          Start Your Reset <ArrowRight size={18} />
+        </Link>
+        <Link className={`mobile-cta button secondary ${showMobileCta ? 'is-visible' : ''}`} href="/book">
+          Book a Consultation <ArrowRight size={18} />
+        </Link>
+      </div>
     </>
   );
 }

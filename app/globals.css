@@ -134,6 +134,96 @@ textarea:focus-visible {
   box-shadow: 0 18px 42px rgba(201, 161, 74, 0.32);
 }
 
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.booking-card {
+  display: grid;
+  gap: 24px;
+}
+
+.booking-intro {
+  margin: 0;
+  color: var(--muted);
+  max-width: 680px;
+}
+
+.booking-callout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 22px;
+  border: 1px solid rgba(11, 31, 51, 0.1);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.booking-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(201, 161, 74, 0.16);
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.booking-callout h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.booking-callout p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.booking-actions {
+  margin-top: 4px;
+}
+
+.booking-embed-shell {
+  border: 1px solid rgba(11, 31, 51, 0.1);
+  border-radius: 24px;
+  overflow: hidden;
+  min-height: 720px;
+  background: var(--white);
+}
+
+.booking-iframe {
+  width: 100%;
+  min-height: 720px;
+  border: 0;
+  background: var(--white);
+}
+
+.booking-config {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 20px 22px;
+  border-radius: 20px;
+}
+
+.booking-config-icon {
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.booking-config p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.booking-fallback-actions {
+  justify-content: flex-start;
+}
+
 .hero {
   padding: 100px 0 80px;
   position: relative;
@@ -1129,13 +1219,20 @@ h1 {
   }
 }
 
-.mobile-cta {
+.mobile-cta-group {
   position: fixed;
   left: 50%;
   bottom: 16px;
-  transform: translateX(-50%) translateY(120%);
-  width: min(calc(100% - 24px), 360px);
   z-index: 40;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  width: min(calc(100% - 24px), 360px);
+  transform: translateX(-50%);
+}
+
+.mobile-cta {
+  width: 100%;
   opacity: 0;
   pointer-events: none;
   box-shadow: 0 16px 38px rgba(11, 31, 51, 0.2);
@@ -1144,7 +1241,6 @@ h1 {
 .mobile-cta.is-visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
 }
 
 [data-reveal] {
@@ -1374,8 +1470,8 @@ h1 {
     grid-template-columns: 1fr;
   }
 
-  .mobile-cta {
-    display: inline-flex;
+  .mobile-cta-group {
+    display: flex;
   }
 }
 

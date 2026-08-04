@@ -18,6 +18,7 @@ import { formatValue } from '../../../../utils/format';
 import { browserSupabase } from '../../../../lib/supabase/browser';
 import { addLeadActivity, updateConsultationDetails, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
 import { createTask, deleteTask, updateTask } from '../../../../services/task.service';
+import { runConsultationAutomation } from '../../../../services/workflow.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
 
@@ -287,6 +288,11 @@ export default function LeadDetailPage() {
     payload.consultation_outcome = consultationOutcome || null;
     payload.consultation_summary = consultationSummary || null;
 
+    const previousLead = lead;
+    const previousStatus = previousLead?.consultation_status || CONSULTATION_STATUS.NOT_BOOKED;
+    const previousOutcome = previousLead?.consultation_outcome || '';
+    const previousDate = previousLead?.consultation_date || '';
+
     const { error: updateError } = await updateConsultationDetails(leadId, payload);
     if (updateError) {
       setSaving(false);
@@ -294,10 +300,13 @@ export default function LeadDetailPage() {
       return;
     }
 
-    const previousLead = lead;
-    const previousStatus = previousLead?.consultation_status || CONSULTATION_STATUS.NOT_BOOKED;
-    const previousOutcome = previousLead?.consultation_outcome || '';
-    const previousDate = previousLead?.consultation_date || '';
+    await runConsultationAutomation(browserSupabase, leadId, {
+      consultation_status: previousStatus,
+      consultation_outcome: previousOutcome,
+    }, {
+      consultation_status: consultationStatus,
+      consultation_outcome: consultationOutcome || null,
+    });
 
     const activityParts: string[] = [];
     if (consultationStatus !== previousStatus) {

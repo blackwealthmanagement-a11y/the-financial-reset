@@ -1,7 +1,8 @@
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { runIntakeAutomation } from '../../../services/workflow.service';
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
@@ -200,18 +201,29 @@ export async function POST(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseSecretKey) {
     return NextResponse.json({ error: 'Supabase configuration is missing.' }, { status: 500 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const publicSupabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   });
 
+  const adminSupabase = createClient(supabaseUrl, supabaseSecretKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+
+  const leadId = randomUUID();
   const submittedAt = new Date().toISOString();
-  const { error } = await supabase.from('intake_submissions').insert([
+  const { error } = await publicSupabase.from('intake_submissions').insert([
     {
+      id: leadId,
       full_name: fullName,
       email,
       phone,
@@ -234,6 +246,12 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ error: 'We could not save your intake right now.' }, { status: 500 });
+  }
+
+  try {
+    await runIntakeAutomation(adminSupabase, leadId, submittedAt);
+  } catch (automationError) {
+    console.error('Intake automation failed after the lead was saved.', automationError);
   }
 
   const emailResult = await sendIntakeEmails({

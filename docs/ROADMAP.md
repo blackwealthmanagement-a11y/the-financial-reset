@@ -1,138 +1,204 @@
-# The Financial Reset Platform Roadmap
+# The Financial Reset Roadmap
 
-This roadmap outlines the planned development of The Financial Reset from its current CRM and lead-management foundation into a complete financial education and client-management platform.
+This roadmap outlines the planned evolution of The Financial Reset platform.
 
-## Current Production Version
+---
 
-### v2.4.0 — CRM Task Management Engine
+# ✅ Version 2.0 — CRM Foundation
 
-Completed capabilities include:
+Completed
 
-- Public financial education website
-- Secure intake workflow
-- Supabase database integration
-- Automated intake emails
-- Administrator authentication
-- Protected CRM dashboard
-- Lead search, filters, and sorting
-- Lead notes and activity history
-- Follow-up date tracking
-- Lead temperature tracking
-- Consultation booking through Calendly
-- Consultation status, outcome, and summary tracking
-- CRM task creation, editing, completion, and deletion
-- Task priorities and due dates
-- Dashboard task metrics
+Features
 
-## v2.5.0 — Workflow Automation
+- Marketing Website
+- Client Intake Portal
+- Supabase Integration
+- Authentication
+- CRM Dashboard
+- Lead Detail Pages
+- Notes
+- Timeline
 
-Planned features:
+---
 
-- Automatically create a 48-hour follow-up task after a new intake
-- Set new leads to the appropriate default status and temperature
-- Automatically create activity timeline entries
-- Suggest next actions based on lead status
-- Create follow-up tasks after consultations
-- Highlight leads waiting on pricing
-- Identify leads who have not booked a consultation
-- Add daily workflow recommendations to the CRM dashboard
+# ✅ Version 2.1 — Architecture Refactor
 
-## v2.6.0 — CRM Communication Center
+Completed
 
-Planned features:
+Features
 
-- One-click CRM email templates
-- New intake follow-up
-- Consultation reminder
-- Missed consultation follow-up
-- Post-consultation follow-up
-- Pricing and enrollment information
-- Waiting for client response
-- Welcome email after enrollment
-- Email delivery history attached to each lead
-- Reusable branded email templates
+- Modular Folder Structure
+- Shared Services
+- Custom Hooks
+- Types
+- Utilities
+- Reusable Components
 
-## v2.7.0 — Document Management
+---
 
-Planned features:
+# ✅ Version 2.2 — Consultation Booking
 
-- Secure Supabase Storage integration
-- Administrator document uploads
-- Client document uploads
-- Associate files with individual leads
-- Document categories
-- Upload timestamps
-- File access controls
-- Document review status
-- Secure download links
+Completed
 
-## v2.8.0 — Analytics and Reporting
+Features
 
-Planned features:
+- Calendly Integration
+- Booking Page
+- Booking Workflow
 
-- Intake-to-consultation conversion rate
-- Consultation-to-enrollment conversion rate
-- Lead source tracking
-- Monthly lead totals
-- Consultation completion rate
-- No-show rate
-- Follow-up completion rate
-- Service-interest reporting
-- CRM pipeline analytics
-- Exportable reports
+---
 
-## v3.0.0 — Client Workspace
+# ✅ Version 2.3 — Consultation Management
 
-Planned features:
+Completed
 
-- Secure client authentication
-- Individual client dashboards
-- Program progress tracking
-- Client tasks and action plans
-- Appointment history
-- Educational resources
-- Secure messaging
-- Document uploads
-- Financial wellness worksheets
-- Personalized next steps
+Features
 
-## v3.1.0 — Payments and Enrollment
+- Consultation Tracking
+- Consultation Outcomes
+- Consultation Summaries
+- Consultation Dashboard Metrics
 
-Planned features:
+---
 
-- Stripe Checkout integration
-- One-time consultation payments
-- Monthly coaching and education plans
-- Payment confirmation emails
-- Enrollment status tracking
-- Invoice and receipt history
-- Failed-payment handling
-- CRM payment visibility
+# ✅ Version 2.4 — Task Management
 
-## Future Development
+Completed
 
-Potential future additions include:
+Features
 
-- SMS reminders
-- Google Calendar synchronization
-- Automated appointment workflows
-- Digital agreements and electronic signatures
-- Educational course modules
-- Client quizzes and worksheets
-- AI-assisted CRM summaries
-- AI-generated follow-up drafts
-- Business performance forecasting
-- Mobile application support
+- CRM Tasks
+- Priority Levels
+- Due Dates
+- Dashboard Widgets
+- Task Completion Tracking
 
-## Product Principles
+---
 
-Development should continue to follow these principles:
+# ✅ Version 2.5 — Workflow Automation
 
-1. Protect client information.
-2. Preserve existing production functionality.
-3. Review every database migration before execution.
-4. Keep administrator access restricted through Row Level Security.
-5. Build features that save time or improve the client experience.
-6. Test locally before committing.
-7. Use version tags for meaningful production milestones.
-8. Keep documentation current with every major release.
+Completed
+
+Features
+
+- Lead Automation
+- Follow-up Automation
+- Workflow Engine
+- Retry Protection
+- Audit Tracking
+- Automatic Task Creation
+
+---
+
+# ✅ Version 2.6 — Communication Center
+
+Completed
+
+Features
+
+- CRM Email Templates
+- Email History
+- Resend Integration
+- Secure Email Sending
+- Retry-safe Delivery
+- Communication Timeline
+
+---
+
+# ✅ Version 2.7 — CRM Sales Pipeline Board
+
+Completed
+
+Features
+
+- Visual Pipeline Board
+- Drag & Drop Workflow
+- Table / Pipeline View
+- Search & Filters
+- Column Counts
+- Keyboard Accessibility
+- Mobile Responsive Layout
+- Automatic Status Updates
+- Activity Timeline Integration
+
+---
+
+# 🚧 Version 3.0 — Client Portal
+
+Status
+
+In Progress
+
+Planned Features
+
+- Secure Client Login
+- Client Dashboard
+- Progress Tracker
+- Assigned Tasks
+- Consultation History
+- Financial Education Resources
+- Document Upload Center
+- Client Messaging
+- Payment History
+- Mobile Responsive Portal
+
+---
+
+# 🔜 Version 3.1 — Payments & Client Onboarding
+
+Planned Features
+
+- Stripe Integration
+- Online Checkout
+- Subscription Management
+- One-Time Consultation Purchases
+- Monthly Coaching Plans
+- Automated Enrollment
+- Client Onboarding Workflow
+
+---
+
+# 🔜 Version 3.2 — Analytics Dashboard
+
+Planned Features
+
+- Revenue Dashboard
+- Conversion Analytics
+- Lead Source Tracking
+- Pipeline Analytics
+- Consultation Metrics
+- Monthly Reporting
+- Business KPIs
+
+---
+
+# 🔜 Version 3.3 — AI Productivity
+
+Planned Features
+
+- AI Lead Summaries
+- AI Email Drafting
+- AI Consultation Notes
+- AI Task Suggestions
+- AI Workflow Recommendations
+- AI Client Insights
+
+---
+
+# 🔜 Version 4.0 — SaaS Platform
+
+Long-Term Vision
+
+Transform The Financial Reset into a multi-tenant financial wellness platform where financial educators, coaches, and consultants can manage their businesses through a single application.
+
+Potential Features
+
+- Multi-user Organizations
+- Team Roles & Permissions
+- White-label Branding
+- Multi-business Support
+- Client Billing
+- Custom Domains
+- Reporting Suite
+- API Access
+- Marketplace Integrations

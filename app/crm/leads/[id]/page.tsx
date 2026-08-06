@@ -8,6 +8,9 @@ import { LeadForm } from '../../../../components/crm/LeadForm';
 import { LeadNotes } from '../../../../components/crm/LeadNotes';
 import { LeadTimeline } from '../../../../components/crm/LeadTimeline';
 import { TaskList } from '../../../../components/crm/TaskList';
+import { EmailComposer } from '../../../../components/crm/EmailComposer';
+import { EmailTemplateList } from '../../../../components/crm/EmailTemplateList';
+import { CommunicationHistory } from '../../../../components/crm/CommunicationHistory';
 import { useLead } from '../../../../hooks/useLead';
 import { useNotes } from '../../../../hooks/useNotes';
 import { useTasks } from '../../../../hooks/useTasks';
@@ -72,6 +75,13 @@ export default function LeadDetailPage() {
   const [taskStatus, setTaskStatus] = useState('Pending');
   const [taskDueDate, setTaskDueDate] = useState('');
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; category: string; subject: string; html: string; active: boolean }>>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailHtml, setEmailHtml] = useState('');
+  const [emailHistory, setEmailHistory] = useState<Array<{ id: string; subject: string; recipient: string; delivery_status: string; sent_at: string | null }>>([]);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -90,6 +100,52 @@ export default function LeadDetailPage() {
     setConsultationOutcome((lead.consultation_outcome as string) || '');
     setConsultationSummary((lead.consultation_summary as string) || '');
   }, [lead]);
+
+  async function getEmailAuthHeaders() {
+    if (!browserSupabase) {
+      throw new Error('The CRM client is unavailable.');
+    }
+
+    const { data: { session } } = await browserSupabase.auth.getSession();
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      throw new Error('Please sign in to use the communication center.');
+    }
+
+    return {
+      Authorization: `Bearer ${accessToken}`
+    };
+  }
+
+  useEffect(() => {
+    async function loadEmailCenter() {
+      if (!leadId) return;
+      setEmailLoading(true);
+      try {
+        const headers = await getEmailAuthHeaders();
+        const response = await fetch(`/api/crm/email?leadId=${leadId}`, { headers });
+        const payload = await response.json();
+        if (payload.templates) {
+          setTemplates(payload.templates);
+          if (payload.templates[0]) {
+            setSelectedTemplateId(payload.templates[0].id);
+            setEmailSubject(payload.templates[0].subject);
+            setEmailHtml(payload.templates[0].html);
+          }
+        }
+        if (payload.history) {
+          setEmailHistory(payload.history);
+        }
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'We could not load the communication center.');
+      } finally {
+        setEmailLoading(false);
+      }
+    }
+
+    loadEmailCenter();
+  }, [leadId]);
 
   async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
     const nextStatus = event.target.value;
@@ -328,6 +384,37 @@ export default function LeadDetailPage() {
     await reload();
   }
 
+  async function handleSendEmail() {
+    if (!leadId || !selectedTemplateId) {
+      return;
+    }
+
+    setEmailSending(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const headers = await getEmailAuthHeaders();
+      const response = await fetch('/api/crm/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ leadId, templateId: selectedTemplateId, sendRequestId: crypto.randomUUID() })
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || 'The email could not be sent.');
+      }
+
+      setNotice('Email sent successfully.');
+      setEmailHistory((current) => [payload.history, ...current]);
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'The email could not be sent.');
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="page-shell">
@@ -474,6 +561,32 @@ export default function LeadDetailPage() {
               onComplete={handleTaskComplete}
               onDelete={handleTaskDelete}
             />
+            <div className="crm-field-card full-card">
+              <h3>Communication center</h3>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <EmailTemplateList
+                  templates={templates}
+                  selectedTemplateId={selectedTemplateId}
+                  onSelect={(templateId) => {
+                    const template = templates.find((item) => item.id === templateId);
+                    setSelectedTemplateId(templateId);
+                    if (template) {
+                      setEmailSubject(template.subject);
+                      setEmailHtml(template.html);
+                    }
+                  }}
+                  loading={emailLoading}
+                />
+                <EmailComposer
+                  template={templates.find((item) => item.id === selectedTemplateId) || null}
+                  subject={emailSubject}
+                  html={emailHtml}
+                  sending={emailSending}
+                  onSend={handleSendEmail}
+                />
+                <CommunicationHistory history={emailHistory} />
+              </div>
+            </div>
             <LeadTimeline activity={activity} />
           </div>
         </div>

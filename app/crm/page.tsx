@@ -1,22 +1,46 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { CRMViewSwitcher } from '../../components/crm/CRMViewSwitcher';
 import { DashboardMetrics } from '../../components/crm/DashboardMetrics';
 import { FollowUpWidget } from '../../components/crm/FollowUpWidget';
 import { LeadFilters } from '../../components/crm/LeadFilters';
 import { LeadTable } from '../../components/crm/LeadTable';
+import { PipelineBoard } from '../../components/crm/PipelineBoard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useLeads } from '../../hooks/useLeads';
 import { getTasks } from '../../services/task.service';
 import type { TaskRow } from '../../types/task';
 
+type CRMView = 'table' | 'pipeline';
+
 export default function CRMPage() {
-  const { rows, loading, error } = useLeads();
+  const router = useRouter();
+  const { rows, loading, error, setRows } = useLeads();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [search, setSearch] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [view, setView] = useState<CRMView>('table');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const storedView = window.localStorage.getItem('crm-view');
+    if (storedView === 'table' || storedView === 'pipeline') {
+      setView(storedView);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('crm-view', view);
+    }
+  }, [view]);
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -65,16 +89,21 @@ export default function CRMPage() {
               <div className="eyebrow">Internal CRM</div>
               <h1>Lead workspace</h1>
             </div>
-            <LeadFilters
-              search={search}
-              onSearchChange={setSearch}
-              serviceFilter={serviceFilter}
-              onServiceFilterChange={setServiceFilter}
-              statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
-              sortOrder={sortOrder}
-              onSortOrderChange={setSortOrder}
-            />
+            <div className="crm-toolbar-stack">
+              <CRMViewSwitcher activeView={view} onChange={setView} />
+              {view === 'table' ? (
+                <LeadFilters
+                  search={search}
+                  onSearchChange={setSearch}
+                  serviceFilter={serviceFilter}
+                  onServiceFilterChange={setServiceFilter}
+                  statusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
+                  sortOrder={sortOrder}
+                  onSortOrderChange={setSortOrder}
+                />
+              ) : null}
+            </div>
           </div>
 
           <DashboardMetrics metrics={metrics} />
@@ -82,24 +111,30 @@ export default function CRMPage() {
             <FollowUpWidget rows={rows} />
           </div>
 
-          {error ? (
-            <div className="status-banner error" role="alert" aria-live="polite">
-              {error}
-            </div>
-          ) : null}
-
-          {loading ? (
-            <div className="crm-empty-state" role="status">
-              <h3>Loading leads…</h3>
-              <p>Please hold while we pull the latest intake submissions.</p>
-            </div>
-          ) : filteredRows.length === 0 ? (
-            <div className="crm-empty-state">
-              <h3>No leads match the current filters.</h3>
-              <p>Try relaxing the search or changing the service and status filters.</p>
-            </div>
+          {view === 'pipeline' ? (
+            <PipelineBoard rows={rows} setRows={setRows} tasks={tasks} loading={loading} error={error} onOpenLead={(leadId) => router.push(`/crm/leads/${leadId}`)} />
           ) : (
-            <LeadTable rows={filteredRows} />
+            <>
+              {error ? (
+                <div className="status-banner error" role="alert" aria-live="polite">
+                  {error}
+                </div>
+              ) : null}
+
+              {loading ? (
+                <div className="crm-empty-state" role="status">
+                  <h3>Loading leads…</h3>
+                  <p>Please hold while we pull the latest intake submissions.</p>
+                </div>
+              ) : filteredRows.length === 0 ? (
+                <div className="crm-empty-state">
+                  <h3>No leads match the current filters.</h3>
+                  <p>Try relaxing the search or changing the service and status filters.</p>
+                </div>
+              ) : (
+                <LeadTable rows={filteredRows} />
+              )}
+            </>
           )}
         </div>
       </section>

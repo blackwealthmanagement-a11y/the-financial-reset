@@ -1,165 +1,173 @@
 # Changelog
 
-All notable changes to The Financial Reset Platform are documented in this file.
+All notable changes to The Financial Reset are documented in this file.
 
-The project uses semantic versioning:
+This project follows semantic versioning where practical.
 
-- Major versions introduce significant platform changes.
-- Minor versions introduce new features.
-- Patch versions contain fixes and smaller improvements.
+---
 
-## v2.4.0 — CRM Task Management Engine
+# Version 2.7.0 — CRM Sales Pipeline Board
 
-### Added
+Release Date: August 2026
 
-- Dedicated `crm_tasks` Supabase table
-- Lead-specific task management
-- Task title and description fields
-- Low, Medium, and High priorities
-- Pending, In Progress, Completed, and Cancelled statuses
-- Task due dates
-- Completion timestamps
-- Create, edit, complete, reopen, and delete actions
-- Today’s Tasks dashboard metric
-- Overdue Tasks dashboard metric
-- Completed Today dashboard metric
-- High Priority Tasks dashboard metric
-- Administrator-only Row Level Security policies
-- Task hooks, services, types, and reusable components
+## Added
 
-### Security
+- Visual CRM Pipeline Board
+- Table View / Pipeline View switcher
+- Drag-and-drop lead management
+- Keyboard-accessible status changes
+- Lead cards with:
+  - Contact information
+  - Service interest
+  - Lead temperature
+  - Follow-up status
+  - Consultation date
+  - Open task count
+- Responsive pipeline layout
+- Search and filtering across pipeline columns
+- Column lead counts
+- Automatic activity timeline entries for pipeline status changes
+- Optimistic UI updates with automatic rollback if database updates fail
 
-- Tasks are accessible only to the approved administrator account.
-- Task records are tied to leads through UUID foreign keys.
-- Deleting a lead removes its associated tasks through cascading deletion.
+## Improved
 
-## v2.3.0 — Consultation Management
+- CRM workflow efficiency
+- Lead organization
+- Administrator productivity
+- Accessibility for keyboard users
+- Responsive experience across desktop and mobile
 
-### Added
+## Technical
 
-- Consultation status tracking
-- Consultation date and time
-- Consultation outcome
-- Consultation summary
-- Consultation management card on lead detail pages
-- Consultation activity timeline entries
-- Consultations Today dashboard metric
-- Upcoming Consultations dashboard metric
-- Completed This Month dashboard metric
-- No Shows dashboard metric
+- Added reusable Pipeline components
+- Added usePipeline custom hook
+- Reused existing CRM services and Supabase schema
+- No database migration required
+- No additional npm packages required
 
-### Consultation Statuses
+Status:
+Production Ready
 
-- Not Booked
-- Scheduled
-- Completed
-- No Show
-- Cancelled
+---
 
-### Consultation Outcomes
+# Version 2.6.0 — CRM Communication Center
 
-- Qualified
-- Follow-up Needed
-- Closed
-- Not Qualified
+## Added
 
-## v2.2.0 — Consultation Booking Integration
+- Communication Center for each CRM lead
+- Email template management
+- Email history tracking
+- Secure Resend email integration
+- Retry-safe email delivery
+- Duplicate send prevention
+- Admin authentication for communication endpoints
+- HTML template variable rendering
+- Email delivery history
 
-### Added
+## Technical
 
-- Public `/book` route
-- Embedded Calendly scheduler
-- Branded booking page
-- Thirty-minute consultation explanation
-- Intake-first booking workflow
-- Booking calls to action throughout the website
-- Calendly fallback link
-- Responsive booking layout
-- `NEXT_PUBLIC_CALENDLY_URL` environment variable
+- Protected server-side email API
+- Bearer token authentication
+- UUID validation
+- Retry-safe send workflow
+- Append-only email history
+- Secure Supabase server access
 
-## v2.1.0 — CRM Architecture Refactor
+Status:
+Production Ready
 
-### Changed
+---
 
-- Refactored large CRM pages into reusable components
-- Created reusable CRM hooks
-- Centralized Supabase operations in service modules
-- Centralized TypeScript interfaces
-- Added shared utilities and constants
-- Improved project folder organization
-- Removed duplicated logic
-- Improved maintainability
-- Preserved existing functionality and styling
+# Version 2.5.0 — Workflow Automation
 
-### Architecture
+## Added
 
-- `components/` for reusable interface components
-- `hooks/` for reusable React state and data loading
-- `services/` for database operations
-- `types/` for shared TypeScript definitions
-- `utils/` for formatting and helpers
-- `lib/` for shared infrastructure
+- Automated lead workflows
+- Follow-up automation
+- Consultation automation
+- Workflow tracking
+- Retry-safe automation engine
+- Idempotent workflow execution
+- Automation audit logs
 
-## v2.0.0 — Secure CRM Dashboard
+Status:
+Production Ready
 
-### Added
+---
 
-- Supabase administrator authentication
-- Protected `/crm` routes
-- Administrator login page
-- Lead dashboard
-- Lead search
-- Service and status filtering
-- Newest and oldest sorting
-- Lead detail pages
-- Lead status updates
-- Lead temperature tracking
-- Next follow-up dates
-- Overdue follow-up highlighting
-- Internal notes
-- Recent activity timeline
-- Dashboard metrics
-- Today’s follow-up widget
+# Version 2.4.0 — Task Management
 
-### Security
+## Added
 
-- Administrator access restricted by Supabase user UUID
-- Row Level Security enabled
-- Anonymous users cannot read CRM submissions
-- Public users retain intake-only insert access
+- CRM task management
+- Lead-specific tasks
+- Priority levels
+- Due dates
+- Task completion tracking
+- Dashboard task widgets
 
-## v1.0.0 — Production Intake Platform
+Status:
+Production Ready
 
-### Added
+---
 
-- Public marketing website
-- Credit education and financial wellness positioning
-- Responsive homepage
-- Service sections
-- Guided intake form
-- Privacy Policy
-- Terms
-- Educational Disclaimer
-- Secure Next.js intake API
-- Input validation and sanitization
-- Honeypot spam protection
-- Rate limiting
-- Duplicate-submission protection
-- Supabase intake storage
-- Resend owner notifications
-- Resend prospect confirmation emails
-- Vercel deployment
-- Cloudflare custom-domain configuration
-- GitHub version control
+# Version 2.3.0 — Consultation Management
 
-### Infrastructure
+## Added
 
-- Next.js
-- React
-- TypeScript
-- Supabase
-- PostgreSQL
-- Resend
-- Vercel
-- Cloudflare
-- GitHub
+- Consultation tracking
+- Consultation outcomes
+- Consultation summaries
+- Consultation dashboard metrics
+
+Status:
+Production Ready
+
+---
+
+# Version 2.2.0 — Calendly Booking
+
+## Added
+
+- Public booking page
+- Calendly integration
+- Consultation booking workflow
+- Booking confirmation experience
+
+Status:
+Production Ready
+
+---
+
+# Version 2.1.0 — CRM Architecture Refactor
+
+## Improved
+
+- Modular architecture
+- Shared services
+- Reusable hooks
+- Component organization
+- Type definitions
+- Utility libraries
+
+Status:
+Production Ready
+
+---
+
+# Version 2.0.0 — Initial CRM Platform
+
+## Added
+
+- Marketing website
+- Client intake portal
+- Supabase integration
+- CRM dashboard
+- Lead management
+- Notes
+- Timeline
+- Authentication
+- Responsive design
+
+Status:
+Production Ready

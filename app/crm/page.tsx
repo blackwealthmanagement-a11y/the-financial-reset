@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { CRMViewSwitcher } from '../../components/crm/CRMViewSwitcher';
 import { DashboardMetrics } from '../../components/crm/DashboardMetrics';
 import { FollowUpWidget } from '../../components/crm/FollowUpWidget';
@@ -88,6 +89,9 @@ export default function CRMPage() {
             <div>
               <div className="eyebrow">Internal CRM</div>
               <h1>Lead workspace</h1>
+            </div>
+            <div className="crm-toolbar-stack">
+              <Link className="button secondary" href="/crm/education">Education</Link>
             </div>
             <div className="crm-toolbar-stack">
               <CRMViewSwitcher activeView={view} onChange={setView} />

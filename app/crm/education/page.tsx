@@ -1,0 +1,133 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import type { EducationCategory, EducationLesson } from '../../../types/education';
+import { getCRMCategories, getCRMLessons, saveCRMLesson, saveCRMCategory, saveLessonResource } from '../../../services/education.service';
+
+export default function CRMEducationPage() {
+  const [categories, setCategories] = useState<EducationCategory[]>([]);
+  const [lessons, setLessons] = useState<EducationLesson[]>([]);
+  const [categoryName, setCategoryName] = useState('');
+  const [categorySlug, setCategorySlug] = useState('');
+  const [lessonTitle, setLessonTitle] = useState('');
+  const [lessonSlug, setLessonSlug] = useState('');
+  const [lessonContent, setLessonContent] = useState('');
+  const [lessonExcerpt, setLessonExcerpt] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [featured, setFeatured] = useState(false);
+  const [published, setPublished] = useState(false);
+  const [resourceTitle, setResourceTitle] = useState('');
+  const [resourceUrl, setResourceUrl] = useState('');
+  const [resourceLessonId, setResourceLessonId] = useState('');
+
+  useEffect(() => {
+    async function loadData() {
+      const [{ data: categoriesData }, { data: lessonsData }] = await Promise.all([getCRMCategories(), getCRMLessons()]);
+      setCategories(categoriesData || []);
+      setLessons(lessonsData || []);
+      if ((categoriesData || []).length > 0) {
+        setSelectedCategoryId((categoriesData || [])[0].id);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  async function handleCreateCategory(event: React.FormEvent) {
+    event.preventDefault();
+    const { data } = await saveCRMCategory({ name: categoryName, slug: categorySlug, description: null });
+    if (data) {
+      setCategories((current) => [...current, data]);
+      setCategoryName('');
+      setCategorySlug('');
+    }
+  }
+
+  async function handleCreateLesson(event: React.FormEvent) {
+    event.preventDefault();
+    const { data } = await saveCRMLesson({
+      categoryId: selectedCategoryId,
+      title: lessonTitle,
+      slug: lessonSlug,
+      excerpt: lessonExcerpt,
+      content: lessonContent,
+      featured,
+      published,
+      sort_order: 0
+    });
+    if (data) {
+      setLessons((current) => [data, ...current]);
+      setLessonTitle('');
+      setLessonSlug('');
+      setLessonExcerpt('');
+      setLessonContent('');
+      setFeatured(false);
+      setPublished(false);
+    }
+  }
+
+  async function handleCreateResource(event: React.FormEvent) {
+    event.preventDefault();
+    const { data } = await saveLessonResource({ lessonId: resourceLessonId, title: resourceTitle, resource_url: resourceUrl, resource_type: 'pdf' });
+    if (data) {
+      setResourceTitle('');
+      setResourceUrl('');
+      setResourceLessonId('');
+    }
+  }
+
+  return (
+    <main className="page-shell">
+      <section className="container page-section">
+        <div className="page-card">
+          <div className="eyebrow">CRM education hub</div>
+          <h1>Education content management</h1>
+          <p>Create categories, publish lessons, and attach public-facing PDFs.</p>
+
+          <div className="portal-grid" style={{ marginTop: 24 }}>
+            <div className="portal-card portal-card-gold">
+              <h3>Create category</h3>
+              <form onSubmit={handleCreateCategory} style={{ display: 'grid', gap: 12 }}>
+                <label className="field"><span>Name</span><input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} /></label>
+                <label className="field"><span>Slug</span><input value={categorySlug} onChange={(event) => setCategorySlug(event.target.value)} /></label>
+                <button className="button primary" type="submit">Create category</button>
+              </form>
+            </div>
+            <div className="portal-card portal-card-navy">
+              <h3>Create lesson</h3>
+              <form onSubmit={handleCreateLesson} style={{ display: 'grid', gap: 12 }}>
+                <label className="field"><span>Title</span><input value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} /></label>
+                <label className="field"><span>Slug</span><input value={lessonSlug} onChange={(event) => setLessonSlug(event.target.value)} /></label>
+                <label className="field"><span>Category</span><select value={selectedCategoryId} onChange={(event) => setSelectedCategoryId(event.target.value)}>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                <label className="field"><span>Excerpt</span><input value={lessonExcerpt} onChange={(event) => setLessonExcerpt(event.target.value)} /></label>
+                <label className="field"><span>Content</span><textarea value={lessonContent} onChange={(event) => setLessonContent(event.target.value)} rows={4} /></label>
+                <label className="field"><span><input type="checkbox" checked={featured} onChange={() => setFeatured((value) => !value)} /> Featured</span></label>
+                <label className="field"><span><input type="checkbox" checked={published} onChange={() => setPublished((value) => !value)} /> Publish</span></label>
+                <button className="button primary" type="submit">Create lesson</button>
+              </form>
+            </div>
+            <div className="portal-card portal-card-gold">
+              <h3>Attach resource</h3>
+              <form onSubmit={handleCreateResource} style={{ display: 'grid', gap: 12 }}>
+                <label className="field"><span>Lesson</span><select value={resourceLessonId} onChange={(event) => setResourceLessonId(event.target.value)}>{lessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{lesson.title}</option>)}</select></label>
+                <label className="field"><span>Title</span><input value={resourceTitle} onChange={(event) => setResourceTitle(event.target.value)} /></label>
+                <label className="field"><span>PDF URL</span><input value={resourceUrl} onChange={(event) => setResourceUrl(event.target.value)} /></label>
+                <button className="button primary" type="submit">Add resource</button>
+              </form>
+            </div>
+          </div>
+
+          <div className="portal-grid" style={{ marginTop: 24 }}>
+            {lessons.map((lesson) => (
+              <article key={lesson.id} className="portal-card portal-card-navy">
+                <h3>{lesson.title}</h3>
+                <p className="portal-card-copy">Published: {lesson.published ? 'Yes' : 'No'}</p>
+                <p className="portal-card-copy">Featured: {lesson.featured ? 'Yes' : 'No'}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}

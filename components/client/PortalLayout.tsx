@@ -16,6 +16,7 @@ const links = [
   { href: '/portal/scheduling', label: 'Scheduling' },
   { href: '/portal/documents', label: 'Documents' },
   { href: '/portal/billing', label: 'Billing' },
+  { href: '/portal/education', label: 'Education' },
   { href: '/portal/resources', label: 'Resources' }
 ];
 

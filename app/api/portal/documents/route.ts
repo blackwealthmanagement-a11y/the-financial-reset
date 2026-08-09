@@ -100,8 +100,12 @@ export async function GET(request: NextRequest) {
   }
 
   const documents = (data || []).map((document) => {
-    const { storage_path: _storagePath, ...rest } = document as Record<string, unknown>;
-    return rest;
+    const { storage_path: _storagePath, rejection_reason: rejectionReason, ...rest } = document as Record<string, unknown>;
+    const normalizedStatus = (document as Record<string, unknown>).status;
+    return {
+      ...rest,
+      rejection_reason: normalizedStatus === 'rejected' ? (rejectionReason as string | null | undefined) ?? null : null
+    };
   });
 
   return NextResponse.json({ documents });

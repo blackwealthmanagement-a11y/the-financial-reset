@@ -207,14 +207,16 @@ export async function POST(request: NextRequest) {
       return buildJsonResponse({ error: 'Upload failed.' }, 500);
     }
 
-    const activityPayload = {
+    const { error: activityError } = await adminClient.from('crm_lead_activity').insert({
       lead_id: leadId,
       activity_type: 'document',
       message: `Uploaded "${originalFileName}"`,
       created_by: 'admin'
-    };
+    });
 
-    await adminClient.from('crm_lead_activity').insert(activityPayload);
+    if (activityError) {
+      console.error('CRM document activity logging failed.', activityError);
+    }
 
     const publicDocument = (() => {
       const { storage_path: _storagePath, ...rest } = insertedDocument as Record<string, unknown>;

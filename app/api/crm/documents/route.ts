@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const adminUserId = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '61058da7-5a59-46c7-a115-ad74eec69213';
+const adminUserId = process.env.ADMIN_USER_ID || '61058da7-5a59-46c7-a115-ad74eec69213';
 
 function getBearerToken(request: NextRequest) {
   const authorization = request.headers.get('authorization');
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  const { data, error } = await adminClient.from('client_documents').select('*').eq('lead_id', leadId);
+  const { data, error } = await adminClient.from('client_documents').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
   if (error) {
     return NextResponse.json({ error: 'We could not load the documents.' }, { status: 500 });
   }

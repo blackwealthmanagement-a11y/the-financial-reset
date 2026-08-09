@@ -24,10 +24,10 @@ import { createTask, deleteTask, updateTask } from '../../../../services/task.se
 import { runConsultationAutomation } from '../../../../services/workflow.service';
 import { convertLeadToClient, findClientByLeadId } from '../../../../services/client.service';
 import { getConsultationEventsForLead } from '../../../../services/consultation.service';
-import { getLeadDocuments, getSignedDocumentUrl, uploadLeadDocument } from '../../../../services/document.service';
+import { buildRequirementStatuses, getClientDocumentRequirements, getLeadDocuments, getRequiredDocumentCategories, getSignedDocumentUrl, updateDocumentStatus, uploadLeadDocument, upsertClientDocumentRequirements } from '../../../../services/document.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
-import type { ClientDocument, DocumentCategory } from '../../../../types/document';
+import type { ClientDocument, ClientDocumentRequirement, DocumentCategory } from '../../../../types/document';
 
 const statusOptions = [
   'new',
@@ -110,8 +110,11 @@ export default function LeadDetailPage() {
   const [converting, setConverting] = useState(false);
   const [consultationEvents, setConsultationEvents] = useState<Array<{ id: string; start_time: string; end_time: string; timezone: string; meeting_type: string; status: string; meeting_link: string | null; notes: string | null }>>([]);
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
+  const [requiredRequirements, setRequiredRequirements] = useState<ClientDocumentRequirement[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentsError, setDocumentsError] = useState<string | null>(null);
+  const [requirementsLoading, setRequirementsLoading] = useState(false);
+  const [requirementsError, setRequirementsError] = useState<string | null>(null);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>('other');
@@ -222,6 +225,7 @@ export default function LeadDetailPage() {
 
   useEffect(() => {
     loadLeadDocuments();
+    loadRequiredDocumentRequirements();
   }, [leadId]);
 
   async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
@@ -511,6 +515,38 @@ export default function LeadDetailPage() {
     setDocumentsLoading(false);
   }
 
+  async function loadRequiredDocumentRequirements() {
+    if (!leadId) {
+      setRequiredRequirements([]);
+      return;
+    }
+
+    setRequirementsLoading(true);
+    setRequirementsError(null);
+
+    const { data: clientLookup } = await findClientByLeadId(leadId);
+    if (!clientLookup?.id) {
+      setRequiredRequirements([]);
+      setRequirementsLoading(false);
+      return;
+    }
+
+    const businessCreditClient = Boolean(clientLookup.program && ['business_credit', 'business', 'business-credit'].includes(String(clientLookup.program).toLowerCase()));
+    const categories = getRequiredDocumentCategories(businessCreditClient);
+    const { data: existingRequirements, error: requirementsError } = await getClientDocumentRequirements(clientLookup.id);
+    if (requirementsError) {
+      setRequirementsError(requirementsError.message);
+      setRequiredRequirements([]);
+    } else if (existingRequirements.length === 0) {
+      const { data: insertedRequirements } = await upsertClientDocumentRequirements(clientLookup.id, leadId, categories);
+      setRequiredRequirements(insertedRequirements || []);
+    } else {
+      setRequiredRequirements(existingRequirements);
+    }
+
+    setRequirementsLoading(false);
+  }
+
   async function handleOpenDocument(documentItem: ClientDocument) {
     const { signedUrl, error: signedUrlError } = await getSignedDocumentUrl(documentItem.id);
     if (signedUrlError || !signedUrl) {
@@ -519,6 +555,26 @@ export default function LeadDetailPage() {
     }
 
     window.open(signedUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  async function handleDocumentStatusChange(documentItem: ClientDocument, nextStatus: ClientDocument['status']) {
+    const payload = {
+      status: nextStatus,
+      rejection_reason: nextStatus === 'rejected' ? (documentItem.rejection_reason ?? '') : null
+    };
+
+    const { data, error } = await updateDocumentStatus(documentItem.id, payload);
+    if (error) {
+      setDocumentsError(error.message || 'We could not update the document status.');
+      return;
+    }
+
+    setDocuments((current) => current.map((item) => item.id === documentItem.id ? {
+      ...item,
+      status: nextStatus,
+      rejection_reason: nextStatus === 'rejected' ? (data?.rejection_reason ?? payload.rejection_reason ?? null) : null,
+      updated_at: data?.updated_at ?? item.updated_at
+    } : item));
   }
 
   async function handleUploadDocument(event: FormEvent<HTMLFormElement>) {
@@ -839,7 +895,20 @@ export default function LeadDetailPage() {
                 </button>
               </form>
               {documentsError ? <div className="status-banner error" role="alert">{documentsError}</div> : null}
+              {requirementsError ? <div className="status-banner error" role="alert">{requirementsError}</div> : null}
               {documentsLoading ? <p className="portal-card-copy">Loading documents…</p> : null}
+              {!documentsLoading && requiredRequirements.length > 0 ? (
+                <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+                  <h4 style={{ margin: 0 }}>Required document checklist</h4>
+                  {buildRequirementStatuses(requiredRequirements, documents).map((requirement) => (
+                    <div key={requirement.category} style={{ border: '1px solid rgba(11,31,51,0.12)', borderRadius: 12, padding: 12 }}>
+                      <p style={{ margin: 0, fontWeight: 700, textTransform: 'capitalize' }}>{requirement.category.replace(/_/g, ' ')}</p>
+                      <p style={{ margin: '4px 0 0' }}><strong>Status:</strong> {requirement.status}</p>
+                      {requirement.rejectionReason ? <p style={{ margin: '4px 0 0' }}><strong>Rejection reason:</strong> {requirement.rejectionReason}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {!documentsLoading && documents.length === 0 ? (
                 <p className="portal-card-copy">No documents are available for this lead yet.</p>
               ) : null}
@@ -854,7 +923,23 @@ export default function LeadDetailPage() {
                       <p className="portal-card-copy">Status: {document.status}</p>
                       <p className="portal-card-copy">Size: {(document.file_size / 1024).toFixed(1)} KB</p>
                       <p className="portal-card-copy">Created: {new Date(document.created_at).toLocaleDateString()}</p>
-                      <button type="button" className="button secondary" onClick={() => handleOpenDocument(document)}>
+                      <label className="field" style={{ marginTop: 8 }}>
+                        <span>Status</span>
+                        <select value={document.status} onChange={(event) => handleDocumentStatusChange(document, event.target.value as ClientDocument['status'])}>
+                          <option value="uploaded">uploaded</option>
+                          <option value="reviewed">reviewed</option>
+                          <option value="approved">approved</option>
+                          <option value="rejected">rejected</option>
+                          <option value="archived">archived</option>
+                        </select>
+                      </label>
+                      {document.status === 'rejected' ? (
+                        <label className="field" style={{ marginTop: 8 }}>
+                          <span>Rejection reason</span>
+                          <textarea value={document.rejection_reason || ''} onChange={(event) => setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, rejection_reason: event.target.value } : item))} rows={3} />
+                        </label>
+                      ) : null}
+                      <button type="button" className="button secondary" onClick={() => handleOpenDocument(document)} style={{ marginTop: 8 }}>
                         Download
                       </button>
                     </article>

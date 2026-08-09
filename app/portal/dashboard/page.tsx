@@ -58,13 +58,24 @@ export default function PortalDashboardPage() {
       <div className="portal-grid">
         <DashboardCard title="Welcome" accent="gold">
           <p className="portal-card-copy">{dashboardData.welcomeMessage}</p>
-          <p className="portal-card-copy"><strong>{user.name || user.email}</strong></p>
+          <p className="portal-card-copy"><strong>{dashboardData.clientName}</strong></p>
+          <p className="portal-card-copy"><strong>Program:</strong> {dashboardData.programName}</p>
+          <p className="portal-card-copy"><strong>Status:</strong> {dashboardData.clientStatus}</p>
+          <p className="portal-card-copy"><strong>Member since:</strong> {dashboardData.memberSince}</p>
         </DashboardCard>
 
-        <ProgressCard percent={dashboardData.progressPercent} programName={dashboardData.programName} />
-        <UpcomingConsultationCard title={dashboardData.consultationTitle} date={dashboardData.consultationDate} location={dashboardData.consultationLocation} />
+        <ProgressCard percent={dashboardData.progressPercent} programName={dashboardData.programName} status={dashboardData.clientStatus} stage={dashboardData.progressStage} />
+        <UpcomingConsultationCard date={dashboardData.consultationDate} status={dashboardData.consultationStatus} summary={dashboardData.consultationSummary} />
         <TaskSummaryCard tasks={dashboardData.tasks} />
         <RecentActivityCard activity={dashboardData.activity} />
+        <DashboardCard title="Documents" accent="navy">
+          <p className="portal-card-copy">Document Vault coming soon.</p>
+        </DashboardCard>
+        <DashboardCard title="Need Help?" accent="gold">
+          <p className="portal-card-copy"><strong>📞 Business Phone</strong><br />{dashboardData.supportPhone}</p>
+          <p className="portal-card-copy"><strong>✉️ Business Email</strong><br />{dashboardData.supportEmail}</p>
+          <p className="portal-card-copy"><strong>Business Hours</strong><br />{dashboardData.supportHours}</p>
+        </DashboardCard>
       </div>
     </PortalLayout>
   );

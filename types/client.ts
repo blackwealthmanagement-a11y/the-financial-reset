@@ -17,17 +17,27 @@ export interface ClientProfile {
 
 export interface PortalDashboardData {
   welcomeMessage: string;
+  clientName: string;
   programName: string;
+  clientStatus: string;
+  memberSince: string;
   progressPercent: number;
-  consultationTitle: string;
+  progressStage: string;
   consultationDate: string;
-  consultationLocation: string;
+  consultationStatus: string;
+  consultationSummary: string;
   tasks: Array<{
     title: string;
-    status: string;
+    priority: string;
+    dueDate: string;
+    completed: boolean;
   }>;
   activity: Array<{
     title: string;
     detail: string;
+    createdAt: string;
   }>;
+  supportPhone: string;
+  supportEmail: string;
+  supportHours: string;
 }

@@ -24,8 +24,10 @@ import { createTask, deleteTask, updateTask } from '../../../../services/task.se
 import { runConsultationAutomation } from '../../../../services/workflow.service';
 import { convertLeadToClient, findClientByLeadId } from '../../../../services/client.service';
 import { getConsultationEventsForLead } from '../../../../services/consultation.service';
+import { getLeadDocuments, getSignedDocumentUrl } from '../../../../services/document.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
+import type { ClientDocument } from '../../../../types/document';
 
 const statusOptions = [
   'new',
@@ -87,6 +89,9 @@ export default function LeadDetailPage() {
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
   const [consultationEvents, setConsultationEvents] = useState<Array<{ id: string; start_time: string; end_time: string; timezone: string; meeting_type: string; status: string; meeting_link: string | null; notes: string | null }>>([]);
+  const [documents, setDocuments] = useState<ClientDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsError, setDocumentsError] = useState<string | null>(null);
   const [invitingPortal, setInvitingPortal] = useState(false);
   const [clientExists, setClientExists] = useState(false);
   const [clientAuthLinked, setClientAuthLinked] = useState(false);
@@ -190,6 +195,29 @@ export default function LeadDetailPage() {
     }
 
     loadConsultationEvents();
+  }, [leadId]);
+
+  useEffect(() => {
+    async function loadDocuments() {
+      if (!leadId) {
+        setDocuments([]);
+        setDocumentsError(null);
+        return;
+      }
+
+      setDocumentsLoading(true);
+      setDocumentsError(null);
+      const { data, error } = await getLeadDocuments(leadId);
+      if (error) {
+        setDocumentsError(error.message);
+        setDocuments([]);
+      } else {
+        setDocuments(data);
+      }
+      setDocumentsLoading(false);
+    }
+
+    loadDocuments();
   }, [leadId]);
 
   async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
@@ -460,6 +488,16 @@ export default function LeadDetailPage() {
     }
   }
 
+  async function handleOpenDocument(documentItem: ClientDocument) {
+    const { signedUrl, error: signedUrlError } = await getSignedDocumentUrl(documentItem.storage_path);
+    if (signedUrlError || !signedUrl) {
+      setDocumentsError(signedUrlError?.message || 'We could not open this document.');
+      return;
+    }
+
+    window.open(signedUrl, '_blank', 'noopener,noreferrer');
+  }
+
   async function handleConvertToClient() {
     if (!leadId || !browserSupabase) {
       return;
@@ -708,6 +746,31 @@ export default function LeadDetailPage() {
               onComplete={handleTaskComplete}
               onDelete={handleTaskDelete}
             />
+            <div className="crm-field-card full-card">
+              <h3>Documents</h3>
+              {documentsError ? <div className="status-banner error" role="alert">{documentsError}</div> : null}
+              {documentsLoading ? <p className="portal-card-copy">Loading documents…</p> : null}
+              {!documentsLoading && documents.length === 0 ? (
+                <p className="portal-card-copy">No documents are available for this lead yet.</p>
+              ) : null}
+              {!documentsLoading && documents.length > 0 ? (
+                <div className="portal-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+                  {documents.map((document) => (
+                    <article key={document.id} className="portal-card portal-card-gold">
+                      <div className="portal-card-header">
+                        <h3>{document.file_name}</h3>
+                        <span className="portal-pill">{document.category}</span>
+                      </div>
+                      <p className="portal-card-copy">Status: {document.status}</p>
+                      <p className="portal-card-copy">Uploaded: {new Date(document.created_at).toLocaleDateString()}</p>
+                      <button type="button" className="button secondary" onClick={() => handleOpenDocument(document)}>
+                        Open securely
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <div className="crm-field-card full-card">
               <h3>Communication center</h3>
               <div style={{ display: 'grid', gap: 16 }}>

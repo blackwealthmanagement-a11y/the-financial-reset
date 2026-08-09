@@ -23,6 +23,7 @@ import { addLeadActivity, updateConsultationDetails, updateLeadFollowUp, updateL
 import { createTask, deleteTask, updateTask } from '../../../../services/task.service';
 import { runConsultationAutomation } from '../../../../services/workflow.service';
 import { convertLeadToClient, findClientByLeadId } from '../../../../services/client.service';
+import { getConsultationEventsForLead } from '../../../../services/consultation.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
 
@@ -85,6 +86,7 @@ export default function LeadDetailPage() {
   const [emailSending, setEmailSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [consultationEvents, setConsultationEvents] = useState<Array<{ id: string; start_time: string; end_time: string; timezone: string; meeting_type: string; status: string; meeting_link: string | null; notes: string | null }>>([]);
   const [invitingPortal, setInvitingPortal] = useState(false);
   const [clientExists, setClientExists] = useState(false);
   const [clientAuthLinked, setClientAuthLinked] = useState(false);
@@ -174,6 +176,20 @@ export default function LeadDetailPage() {
     }
 
     loadEmailCenter();
+  }, [leadId]);
+
+  useEffect(() => {
+    async function loadConsultationEvents() {
+      if (!leadId) {
+        setConsultationEvents([]);
+        return;
+      }
+
+      const { data } = await getConsultationEventsForLead(leadId);
+      setConsultationEvents(data || []);
+    }
+
+    loadConsultationEvents();
   }, [leadId]);
 
   async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
@@ -619,6 +635,25 @@ export default function LeadDetailPage() {
               {isOverdue ? <p className="crm-followup-pill overdue">Overdue follow-up</p> : null}
             </div>
 
+            <div className="crm-field-card full-card">
+              <h3>Consultation scheduling</h3>
+              {consultationEvents.length > 0 ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {consultationEvents.map((event) => (
+                    <div key={event.id} style={{ border: '1px solid rgba(11, 31, 51, 0.12)', borderRadius: 12, padding: 12 }}>
+                      <p style={{ margin: 0, fontWeight: 700 }}>{new Date(event.start_time).toLocaleString()}</p>
+                      <p style={{ margin: '4px 0 0' }}><strong>Type:</strong> {event.meeting_type}</p>
+                      <p style={{ margin: '4px 0 0' }}><strong>Status:</strong> {event.status}</p>
+                      <p style={{ margin: '4px 0 0' }}><strong>Timezone:</strong> {event.timezone}</p>
+                      {event.meeting_link ? <p style={{ margin: '4px 0 0' }}><strong>Link:</strong> {event.meeting_link}</p> : null}
+                      {event.notes ? <p style={{ margin: '4px 0 0' }}><strong>Notes:</strong> {event.notes}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="portal-card-copy">No consultation events have been scheduled yet.</p>
+              )}
+            </div>
             <ConsultationCard
               consultationStatus={consultationStatus}
               consultationDate={consultationDate}

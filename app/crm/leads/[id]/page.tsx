@@ -22,6 +22,7 @@ import { browserSupabase } from '../../../../lib/supabase/browser';
 import { addLeadActivity, updateConsultationDetails, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
 import { createTask, deleteTask, updateTask } from '../../../../services/task.service';
 import { runConsultationAutomation } from '../../../../services/workflow.service';
+import { convertLeadToClient, findClientByLeadId } from '../../../../services/client.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
 
@@ -83,6 +84,8 @@ export default function LeadDetailPage() {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [clientExists, setClientExists] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const leadId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -100,6 +103,25 @@ export default function LeadDetailPage() {
     setConsultationOutcome((lead.consultation_outcome as string) || '');
     setConsultationSummary((lead.consultation_summary as string) || '');
   }, [lead]);
+
+  useEffect(() => {
+    async function refreshClientState() {
+      if (!leadId) {
+        setClientExists(false);
+        return;
+      }
+
+      const { data, error: clientLookupError } = await findClientByLeadId(leadId);
+      if (clientLookupError) {
+        setClientExists(false);
+        return;
+      }
+
+      setClientExists(Boolean(data));
+    }
+
+    refreshClientState();
+  }, [leadId, notice]);
 
   async function getEmailAuthHeaders() {
     if (!browserSupabase) {
@@ -415,6 +437,38 @@ export default function LeadDetailPage() {
     }
   }
 
+  async function handleConvertToClient() {
+    if (!leadId || !browserSupabase) {
+      return;
+    }
+
+    setConverting(true);
+    setError(null);
+    setNotice(null);
+
+    const { data, error: conversionError, created } = await convertLeadToClient(leadId);
+    if (conversionError) {
+      setConverting(false);
+      setError(conversionError.message || 'We could not create the client record.');
+      return;
+    }
+
+    if (!data) {
+      setConverting(false);
+      setError('We could not create the client record.');
+      return;
+    }
+
+    if (created) {
+      await addLeadActivity(leadId, 'client', 'Lead converted into client.');
+    }
+
+    setClientExists(true);
+    setNotice(created ? 'Lead converted into client.' : 'This lead is already linked to a client.');
+    setConverting(false);
+    await reload();
+  }
+
   if (loading) {
     return (
       <main className="page-shell">
@@ -471,6 +525,9 @@ export default function LeadDetailPage() {
                 ))}
               </select>
             </label>
+            <button type="button" className="button primary" onClick={handleConvertToClient} disabled={converting || clientExists}>
+              {converting ? 'Creating client…' : clientExists ? '✓ Client Created' : 'Convert to Client'}
+            </button>
             {notice ? <div className="status-banner" role="status">{notice}</div> : null}
           </div>
 

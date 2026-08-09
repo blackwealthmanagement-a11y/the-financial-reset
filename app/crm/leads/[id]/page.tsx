@@ -17,7 +17,6 @@ import { useTasks } from '../../../../hooks/useTasks';
 import { LEAD_TEMPERATURE } from '../../../../lib/constants';
 import { CONSULTATION_OUTCOME, CONSULTATION_STATUS } from '../../../../constants/consultation';
 import { getFollowUpState } from '../../../../utils/date';
-import { formatValue } from '../../../../utils/format';
 import { browserSupabase } from '../../../../lib/supabase/browser';
 import { addLeadActivity, updateConsultationDetails, updateLeadFollowUp, updateLeadStatus } from '../../../../services/crm.service';
 import { createTask, deleteTask, updateTask } from '../../../../services/task.service';
@@ -25,9 +24,12 @@ import { runConsultationAutomation } from '../../../../services/workflow.service
 import { convertLeadToClient, findClientByLeadId } from '../../../../services/client.service';
 import { getConsultationEventsForLead } from '../../../../services/consultation.service';
 import { buildRequirementStatuses, getClientDocumentRequirements, getLeadDocuments, getRequiredDocumentCategories, getSignedDocumentUrl, updateDocumentStatus, uploadLeadDocument, upsertClientDocumentRequirements } from '../../../../services/document.service';
+import { createInvoice, getBillingProducts, getClientInvoices, recordManualPayment, updateInvoiceStatus } from '../../../../services/billing.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
 import type { ClientDocument, ClientDocumentRequirement, DocumentCategory } from '../../../../types/document';
+import type { BillingProduct, ClientInvoice } from '../../../../types/billing';
+import { formatCurrencyCents, formatValue } from '../../../../utils/format';
 
 const statusOptions = [
   'new',
@@ -115,6 +117,23 @@ export default function LeadDetailPage() {
   const [documentsError, setDocumentsError] = useState<string | null>(null);
   const [requirementsLoading, setRequirementsLoading] = useState(false);
   const [requirementsError, setRequirementsError] = useState<string | null>(null);
+  const [billingProducts, setBillingProducts] = useState<BillingProduct[]>([]);
+  const [billingInvoices, setBillingInvoices] = useState<ClientInvoice[]>([]);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [billingNotice, setBillingNotice] = useState<string | null>(null);
+  const [billingCreating, setBillingCreating] = useState(false);
+  const [invoiceProductId, setInvoiceProductId] = useState('');
+  const [invoiceDescription, setInvoiceDescription] = useState('');
+  const [invoiceQuantity, setInvoiceQuantity] = useState('1');
+  const [invoiceUnitPrice, setInvoiceUnitPrice] = useState('0');
+  const [invoiceDueDate, setInvoiceDueDate] = useState('');
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [paymentInvoiceId, setPaymentInvoiceId] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('manual');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>('other');
@@ -227,6 +246,32 @@ export default function LeadDetailPage() {
     loadLeadDocuments();
     loadRequiredDocumentRequirements();
   }, [leadId]);
+
+  useEffect(() => {
+    async function loadBillingData() {
+      if (!leadId || !clientExists) {
+        setBillingInvoices([]);
+        return;
+      }
+
+      setBillingLoading(true);
+      setBillingError(null);
+      try {
+        const [{ data: productsData }, { data: invoicesData }] = await Promise.all([
+          getBillingProducts(),
+          getClientInvoices(leadId)
+        ]);
+        setBillingProducts(productsData || []);
+        setBillingInvoices(invoicesData || []);
+      } catch (loadError) {
+        setBillingError(loadError instanceof Error ? loadError.message : 'We could not load billing data.');
+      } finally {
+        setBillingLoading(false);
+      }
+    }
+
+    loadBillingData();
+  }, [leadId, clientExists]);
 
   async function handleStatusUpdate(event: ChangeEvent<HTMLSelectElement>) {
     const nextStatus = event.target.value;
@@ -575,6 +620,100 @@ export default function LeadDetailPage() {
       rejection_reason: nextStatus === 'rejected' ? (data?.rejection_reason ?? payload.rejection_reason ?? null) : null,
       updated_at: data?.updated_at ?? item.updated_at
     } : item));
+  }
+
+  async function handleCreateInvoice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!leadId || !clientExists) {
+      setBillingError('This lead must be converted into a client before billing can be created.');
+      return;
+    }
+
+    setBillingCreating(true);
+    setBillingError(null);
+    setBillingNotice(null);
+
+    const invoicePayload = {
+      clientId: (await findClientByLeadId(leadId)).data?.id || '',
+      leadId,
+      productId: invoiceProductId || undefined,
+      description: invoiceDescription.trim() || 'Invoice item',
+      quantity: Number(invoiceQuantity) || 1,
+      unitPriceCents: Number(invoiceUnitPrice) || 0,
+      dueDate: invoiceDueDate || null,
+      notes: invoiceNotes || null
+    };
+
+    try {
+      const { data, error } = await createInvoice(invoicePayload);
+      if (error || !data?.invoice) {
+        throw new Error(error?.message || 'We could not create the invoice.');
+      }
+
+      setBillingNotice(`Invoice created. ${data.invoice.invoice_number}`);
+      setInvoiceDescription('');
+      setInvoiceQuantity('1');
+      setInvoiceUnitPrice('0');
+      setInvoiceDueDate('');
+      setInvoiceNotes('');
+      setInvoiceProductId('');
+      const { data: refreshedInvoices } = await getClientInvoices(leadId);
+      setBillingInvoices(refreshedInvoices || []);
+    } catch (invoiceError) {
+      setBillingError(invoiceError instanceof Error ? invoiceError.message : 'We could not create the invoice.');
+    } finally {
+      setBillingCreating(false);
+    }
+  }
+
+  async function handleInvoiceStatusChange(invoice: ClientInvoice, nextStatus: ClientInvoice['status']) {
+    setBillingError(null);
+    setBillingNotice(null);
+    try {
+      const { data, error } = await updateInvoiceStatus(invoice.id, nextStatus);
+      if (error || !data) {
+        throw new Error(error?.message || 'We could not update the invoice status.');
+      }
+      setBillingInvoices((current) => current.map((item) => item.id === invoice.id ? data : item));
+      setBillingNotice(`Invoice marked ${nextStatus}.`);
+    } catch (statusError) {
+      setBillingError(statusError instanceof Error ? statusError.message : 'We could not update the invoice status.');
+    }
+  }
+
+  async function handleManualPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!paymentInvoiceId) {
+      setBillingError('Please select an invoice to apply the payment to.');
+      return;
+    }
+
+    setPaymentSubmitting(true);
+    setBillingError(null);
+    setBillingNotice(null);
+
+    try {
+      const { data, error } = await recordManualPayment(paymentInvoiceId, {
+        amountCents: Number(paymentAmount) || 0,
+        paymentMethod,
+        reference: paymentReference || null,
+        status: 'paid'
+      });
+      if (error || !data?.invoice) {
+        throw new Error(error?.message || 'We could not record the payment.');
+      }
+      setBillingNotice(`Manual payment recorded for ${data.invoice.invoice_number}.`);
+      setPaymentInvoiceId('');
+      setPaymentAmount('');
+      setPaymentMethod('manual');
+      setPaymentReference('');
+      const { data: refreshedInvoices } = await getClientInvoices(leadId as string);
+      setBillingInvoices(refreshedInvoices || []);
+    } catch (paymentError) {
+      setBillingError(paymentError instanceof Error ? paymentError.message : 'We could not record the payment.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
   }
 
   async function handleUploadDocument(event: FormEvent<HTMLFormElement>) {
@@ -947,6 +1086,129 @@ export default function LeadDetailPage() {
                 </div>
               ) : null}
             </div>
+            {clientExists ? (
+              <div className="crm-field-card full-card">
+                <h3>Billing</h3>
+                {billingError ? <div className="status-banner error" role="alert">{billingError}</div> : null}
+                {billingNotice ? <div className="status-banner" role="status">{billingNotice}</div> : null}
+                <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+                  <div className="portal-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                    <div className="portal-card portal-card-gold">
+                      <p className="portal-card-copy"><strong>Outstanding balance</strong></p>
+                      <p className="portal-card-copy">{formatCurrencyCents(billingInvoices.filter((invoice) => invoice.status !== 'paid' && invoice.status !== 'cancelled').reduce((sum, invoice) => sum + invoice.total_cents, 0))}</p>
+                    </div>
+                    <div className="portal-card portal-card-navy">
+                      <p className="portal-card-copy"><strong>Total paid</strong></p>
+                      <p className="portal-card-copy">{formatCurrencyCents(billingInvoices.filter((invoice) => invoice.status === 'paid').reduce((sum, invoice) => sum + invoice.total_cents, 0))}</p>
+                    </div>
+                    <div className="portal-card portal-card-gold">
+                      <p className="portal-card-copy"><strong>Open invoices</strong></p>
+                      <p className="portal-card-copy">{billingInvoices.filter((invoice) => invoice.status === 'draft' || invoice.status === 'sent' || invoice.status === 'overdue').length}</p>
+                    </div>
+                    <div className="portal-card portal-card-navy">
+                      <p className="portal-card-copy"><strong>Most recent invoice</strong></p>
+                      <p className="portal-card-copy">{billingInvoices[0] ? billingInvoices[0].invoice_number : 'No invoices yet'}</p>
+                    </div>
+                  </div>
+                </div>
+                <form onSubmit={handleCreateInvoice} style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+                  <div className="portal-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                    <label className="field">
+                      <span>Billing product</span>
+                      <select value={invoiceProductId} onChange={(event) => {
+                        const selected = billingProducts.find((item) => item.id === event.target.value);
+                        setInvoiceProductId(event.target.value);
+                        setInvoiceUnitPrice(String(selected?.price_cents ?? 0));
+                      }}>
+                        <option value="">Select a product</option>
+                        {billingProducts.map((product) => (
+                          <option key={product.id} value={product.id}>{product.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Description</span>
+                      <input value={invoiceDescription} onChange={(event) => setInvoiceDescription(event.target.value)} placeholder="Invoice line description" />
+                    </label>
+                    <label className="field">
+                      <span>Quantity</span>
+                      <input type="number" min="1" value={invoiceQuantity} onChange={(event) => setInvoiceQuantity(event.target.value)} />
+                    </label>
+                    <label className="field">
+                      <span>Unit price (cents)</span>
+                      <input type="number" min="0" value={invoiceUnitPrice} onChange={(event) => setInvoiceUnitPrice(event.target.value)} />
+                    </label>
+                    <label className="field">
+                      <span>Due date</span>
+                      <input type="date" value={invoiceDueDate} onChange={(event) => setInvoiceDueDate(event.target.value)} />
+                    </label>
+                    <label className="field">
+                      <span>Invoice notes</span>
+                      <input value={invoiceNotes} onChange={(event) => setInvoiceNotes(event.target.value)} placeholder="Optional notes" />
+                    </label>
+                  </div>
+                  <button type="submit" className="button primary" disabled={billingCreating}>{billingCreating ? 'Creating invoice…' : 'Create invoice'}</button>
+                </form>
+
+                <form onSubmit={handleManualPayment} style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+                  <div className="portal-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                    <label className="field">
+                      <span>Invoice</span>
+                      <select value={paymentInvoiceId} onChange={(event) => setPaymentInvoiceId(event.target.value)}>
+                        <option value="">Select an invoice</option>
+                        {billingInvoices.map((invoice) => (
+                          <option key={invoice.id} value={invoice.id}>{invoice.invoice_number} — {invoice.status}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Amount (cents)</span>
+                      <input type="number" min="1" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
+                    </label>
+                    <label className="field">
+                      <span>Method</span>
+                      <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+                        <option value="manual">manual</option>
+                        <option value="cash">cash</option>
+                        <option value="bank_transfer">bank_transfer</option>
+                        <option value="zelle">zelle</option>
+                        <option value="other">other</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Reference</span>
+                      <input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Receipt / note" />
+                    </label>
+                  </div>
+                  <button type="submit" className="button secondary" disabled={paymentSubmitting}>{paymentSubmitting ? 'Recording payment…' : 'Record manual payment'}</button>
+                </form>
+
+                {billingLoading ? <p className="portal-card-copy">Loading billing…</p> : null}
+                {billingInvoices.length === 0 && !billingLoading ? <p className="portal-card-copy">No invoices yet.</p> : null}
+                {billingInvoices.length > 0 ? (
+                  <div className="portal-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+                    {billingInvoices.map((invoice) => (
+                      <article key={invoice.id} className="portal-card portal-card-gold">
+                        <p className="portal-card-copy"><strong>{invoice.invoice_number}</strong></p>
+                        <p className="portal-card-copy">Status: {invoice.status}</p>
+                        <p className="portal-card-copy">Amount: {formatCurrencyCents(invoice.total_cents, invoice.currency)}</p>
+                        <p className="portal-card-copy">Due: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '—'}</p>
+                        <label className="field" style={{ marginTop: 8 }}>
+                          <span>Update status</span>
+                          <select value={invoice.status} onChange={(event) => handleInvoiceStatusChange(invoice, event.target.value as ClientInvoice['status'])}>
+                            <option value="draft">draft</option>
+                            <option value="sent">sent</option>
+                            <option value="paid">paid</option>
+                            <option value="overdue">overdue</option>
+                            <option value="cancelled">cancelled</option>
+                          </select>
+                        </label>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="crm-field-card full-card">
               <h3>Communication center</h3>
               <div style={{ display: 'grid', gap: 16 }}>

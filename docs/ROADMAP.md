@@ -133,10 +133,10 @@ Features
 
 ---
 
-## 🚧 Version 3.1
+## Version 3.1 ✅ COMPLETE
 - Client Self-Service Scheduling
 
-## 📄 Version 3.2
+## Version 3.2 🚧 IN PROGRESS
 - Secure Document Vault
 
 ## 💳 Version 3.3

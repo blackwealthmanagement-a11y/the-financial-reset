@@ -136,14 +136,20 @@ Features
 ## Version 3.1 ✅ COMPLETE
 - Client Self-Service Scheduling
 
-## Version 3.2 🚧 IN PROGRESS
-- Secure Document Vault
+## ✅ Version 3.2 — Secure Document Vault
 
-## 💳 Version 3.3
+
+## ✅ Version 3.3 Phase 1 — Billing Foundation
 - Billing & Payments
 
 ## 🎓 Version 3.4
 - Client Education Hub
+-
+- 🔜 Version 3.3 Phase 2 — Online Payments / Stripe
+
+🔜 Version 3.4 — Education Hub
+
+🔜 Version 4.0 — Public Resource & Learning Center
 
 ## 🌐 Version 4.0
 - Public Resource Center

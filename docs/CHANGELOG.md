@@ -5,7 +5,33 @@ All notable changes to The Financial Reset are documented in this file.
 This project follows semantic versioning where practical.
 
 ---
+## Version 3.0.0 – Client Portal Complete
 
+### Added
+- Client Portal authentication
+- Client identity layer
+- Lead-to-client conversion
+- Portal invitation workflow
+- Password setup flow
+- Live client dashboard
+- CRM-backed dashboard cards
+- Client task dashboard
+- Recent activity feed
+- Consultation dashboard
+- Contact Support card
+- Portal security hardening
+- Admin invitation endpoint
+- Retry-safe invite flow
+
+### Security
+- RLS enforced across portal data
+- Admin-only invitation workflow
+- Secure bearer-token validation
+- Idempotent invitation handling
+
+### Fixed
+- Removed placeholder dashboard content
+- Replaced with live CRM-backed data
 # Version 2.7.0 — CRM Sales Pipeline Board
 
 Release Date: August 2026

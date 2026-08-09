@@ -16,7 +16,7 @@ function getBearerToken(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const token = getBearerToken(request);
-  const storagePath = request.nextUrl.searchParams.get('storagePath');
+  const documentId = request.nextUrl.searchParams.get('documentId');
 
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -50,8 +50,28 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  if (storagePath) {
-    const { data, error } = await adminClient.storage.from('client-documents').createSignedUrl(storagePath, 60 * 60);
+  if (documentId) {
+    const { data: documentRow, error: documentLookupError } = await adminClient
+      .from('client_documents')
+      .select('storage_path, client_id')
+      .eq('id', documentId)
+      .maybeSingle();
+
+    if (documentLookupError || !documentRow?.storage_path) {
+      return NextResponse.json({ error: 'We could not find that document.' }, { status: 404 });
+    }
+
+    const { data: clientRecord, error: clientLookupError } = await adminClient
+      .from('clients')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (clientLookupError || !clientRecord?.id || clientRecord.id !== documentRow.client_id) {
+      return NextResponse.json({ error: 'Permission denied.' }, { status: 403 });
+    }
+
+    const { data, error } = await adminClient.storage.from('client-documents').createSignedUrl(documentRow.storage_path, 5 * 60);
 
     if (error || !data?.signedUrl) {
       return NextResponse.json({ error: 'We could not create a secure link.' }, { status: 500 });
@@ -79,5 +99,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'We could not load your documents.' }, { status: 500 });
   }
 
-  return NextResponse.json({ documents: data || [] });
+  const documents = (data || []).map((document) => {
+    const { storage_path: _storagePath, ...rest } = document as Record<string, unknown>;
+    return rest;
+  });
+
+  return NextResponse.json({ documents });
 }

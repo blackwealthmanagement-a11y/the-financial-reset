@@ -6,7 +6,7 @@ export interface ClientDocument {
   id: string;
   client_id: string;
   lead_id: string;
-  storage_path: string;
+  storage_path?: string | null;
   file_name: string;
   original_file_name: string;
   mime_type: string;
@@ -16,4 +16,16 @@ export interface ClientDocument {
   uploaded_by: 'client' | 'admin';
   created_at: string;
   updated_at: string;
+}
+
+export interface DocumentUploadPayload {
+  leadId: string;
+  clientId: string;
+  category: DocumentCategory;
+  file: File;
+}
+
+export interface DocumentUploadResponse {
+  ok: boolean;
+  document: ClientDocument;
 }

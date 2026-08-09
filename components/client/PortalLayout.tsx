@@ -13,6 +13,7 @@ interface PortalLayoutProps {
 
 const links = [
   { href: '/portal/dashboard', label: 'Dashboard' },
+  { href: '/portal/scheduling', label: 'Scheduling' },
   { href: '/portal/documents', label: 'Documents' },
   { href: '/portal/resources', label: 'Resources' },
   { href: '/portal/messages', label: 'Messages' }

@@ -85,7 +85,10 @@ export default function LeadDetailPage() {
   const [emailSending, setEmailSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [invitingPortal, setInvitingPortal] = useState(false);
   const [clientExists, setClientExists] = useState(false);
+  const [clientAuthLinked, setClientAuthLinked] = useState(false);
+  const [clientAuthUserId, setClientAuthUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const leadId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -114,10 +117,14 @@ export default function LeadDetailPage() {
       const { data, error: clientLookupError } = await findClientByLeadId(leadId);
       if (clientLookupError) {
         setClientExists(false);
+        setClientAuthLinked(false);
+        setClientAuthUserId(null);
         return;
       }
 
       setClientExists(Boolean(data));
+      setClientAuthLinked(Boolean(data?.auth_user_id));
+      setClientAuthUserId(data?.auth_user_id ?? null);
     }
 
     refreshClientState();
@@ -464,9 +471,52 @@ export default function LeadDetailPage() {
     }
 
     setClientExists(true);
+    setClientAuthLinked(Boolean(data.auth_user_id));
+    setClientAuthUserId(data.auth_user_id ?? null);
     setNotice(created ? 'Lead converted into client.' : 'This lead is already linked to a client.');
     setConverting(false);
     await reload();
+  }
+
+  async function handleInviteToPortal() {
+    if (!leadId || !browserSupabase) {
+      return;
+    }
+
+    setInvitingPortal(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const { data: { session } } = await browserSupabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        throw new Error('Please sign in to invite this client to the portal.');
+      }
+
+      const response = await fetch('/api/crm/clients/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ leadId })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || 'We could not send the portal invite.');
+      }
+
+      setClientAuthLinked(Boolean(payload?.client?.auth_user_id));
+      setClientAuthUserId(payload?.client?.auth_user_id ?? null);
+      setNotice(payload?.message || 'Portal access invited and linked.');
+    } catch (inviteError) {
+      setError(inviteError instanceof Error ? inviteError.message : 'We could not send the portal invite.');
+    } finally {
+      setInvitingPortal(false);
+    }
   }
 
   if (loading) {
@@ -528,6 +578,11 @@ export default function LeadDetailPage() {
             <button type="button" className="button primary" onClick={handleConvertToClient} disabled={converting || clientExists}>
               {converting ? 'Creating client…' : clientExists ? '✓ Client Created' : 'Convert to Client'}
             </button>
+            {clientExists ? (
+              <button type="button" className="button secondary" onClick={handleInviteToPortal} disabled={invitingPortal || clientAuthLinked}>
+                {invitingPortal ? 'Sending invite…' : clientAuthLinked ? '✓ Portal Access Linked' : 'Send Portal Invite'}
+              </button>
+            ) : null}
             {notice ? <div className="status-banner" role="status">{notice}</div> : null}
           </div>
 

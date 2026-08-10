@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { handleLearningPathCompletion } from '../../../../services/education-completion.service';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -39,6 +40,14 @@ export async function GET(request: NextRequest) {
 
   const slug = request.nextUrl.searchParams.get('slug');
   const view = request.nextUrl.searchParams.get('view');
+
+  if (view === 'path-progress') {
+    const { data: progress, error } = await adminClient.from('client_learning_path_progress').select('*').eq('client_id', clientRecord.id).order('updated_at', { ascending: false });
+    if (error) {
+      return NextResponse.json({ error: 'We could not load learning path progress.' }, { status: 500 });
+    }
+    return NextResponse.json({ progress: progress || [] });
+  }
 
   if (slug) {
     const { data: lesson, error: lessonError } = await adminClient.from('education_lessons').select('*').eq('slug', slug).eq('published', true).maybeSingle();
@@ -107,6 +116,36 @@ export async function POST(request: NextRequest) {
   const payload = await request.json();
   const lessonId = typeof payload?.lessonId === 'string' ? payload.lessonId : '';
   const completed = Boolean(payload?.completed);
+  const pathSlug = typeof payload?.pathSlug === 'string' ? payload.pathSlug : '';
+
+  if (pathSlug) {
+    const { data: path } = await adminClient.from('education_learning_paths').select('*').eq('slug', pathSlug).eq('published', true).maybeSingle();
+    if (!path?.id) {
+      return NextResponse.json({ error: 'Learning path not found.' }, { status: 404 });
+    }
+
+    const { data: progress } = await adminClient.from('client_learning_path_progress').select('*').eq('client_id', clientRecord.id).eq('learning_path_id', path.id).maybeSingle();
+    const previousPercent = Number(progress?.percent_complete || 0);
+    const nextProgress = progress ? { ...progress, percent_complete: completed ? 100 : 0, updated_at: new Date().toISOString() } : { client_id: clientRecord.id, learning_path_id: path.id, percent_complete: completed ? 100 : 0, started_at: new Date().toISOString(), completed_at: completed ? new Date().toISOString() : null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const { data: updatedProgress, error } = progress
+      ? await adminClient.from('client_learning_path_progress').update(nextProgress).eq('id', progress.id).select('*').single()
+      : await adminClient.from('client_learning_path_progress').insert(nextProgress).select('*').single();
+    if (error || !updatedProgress) {
+      return NextResponse.json({ error: 'We could not update your learning path progress.' }, { status: 500 });
+    }
+
+    const nextPercent = Number(updatedProgress.percent_complete || 0);
+    if (previousPercent < 100 && nextPercent >= 100) {
+      await handleLearningPathCompletion({
+        authUserId: user.id,
+        learningPathId: path.id,
+        learningPathTitle: path.title,
+        learningPathSortOrder: path.sort_order
+      });
+    }
+
+    return NextResponse.json({ progress: updatedProgress });
+  }
 
   if (!lessonId) {
     return NextResponse.json({ error: 'Lesson id is required.' }, { status: 400 });

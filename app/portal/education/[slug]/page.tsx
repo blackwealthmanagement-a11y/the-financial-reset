@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { PortalLayout } from '../../../../components/client/PortalLayout';
 import type { ClientLessonProgress, EducationCategory, EducationLesson, EducationLessonRelation, LessonResource } from '../../../../types/education';
-import { getPortalLessonBySlug, toggleLessonProgress } from '../../../../services/education.service';
+import { getPortalLessonBySlug, getPortalLessons, toggleLessonProgress } from '../../../../services/education.service';
 
 export default function PortalLessonPage() {
   const params = useParams();
@@ -15,6 +15,7 @@ export default function PortalLessonPage() {
   const [relations, setRelations] = useState<EducationLessonRelation[]>([]);
   const [relatedLessons, setRelatedLessons] = useState<EducationLesson[]>([]);
   const [progress, setProgress] = useState<ClientLessonProgress | null>(null);
+  const [allLessons, setAllLessons] = useState<EducationLesson[]>([]);
   const [loading, setLoading] = useState(false);
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
@@ -23,12 +24,13 @@ export default function PortalLessonPage() {
       if (!slug) return;
       setLoading(true);
       try {
-        const { data, category: categoryData, resources: resourceData, relations: relationData, progress: progressData } = await getPortalLessonBySlug(slug);
+        const [{ data, category: categoryData, resources: resourceData, relations: relationData, progress: progressData }, { data: lessonsData }] = await Promise.all([getPortalLessonBySlug(slug), getPortalLessons()]);
         setLesson(data || null);
         setCategory(categoryData || null);
         setResources(resourceData || []);
         setRelations(relationData || []);
         setProgress(progressData || null);
+        setAllLessons(lessonsData || []);
         setRelatedLessons((data as unknown as { relatedLessons?: EducationLesson[] } | null)?.relatedLessons || []);
       } finally {
         setLoading(false);
@@ -45,6 +47,9 @@ export default function PortalLessonPage() {
   }
 
   const completionLabel = useMemo(() => (progress?.completed ? 'Completed' : 'In progress'), [progress?.completed]);
+  const currentIndex = useMemo(() => allLessons.findIndex((entry) => entry.id === lesson?.id), [allLessons, lesson]);
+  const previousLesson = useMemo(() => (currentIndex > 0 ? allLessons[currentIndex - 1] : null), [allLessons, currentIndex]);
+  const nextLesson = useMemo(() => (currentIndex >= 0 ? allLessons[currentIndex + 1] || null : null), [allLessons, currentIndex]);
 
   if (!lesson && !loading) {
     return (
@@ -96,6 +101,10 @@ export default function PortalLessonPage() {
             <h3>Resources</h3>
             {resources.length > 0 ? resources.map((resource) => <a key={resource.id} className="button secondary" href={resource.resource_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8 }}>{resource.title}</a>) : <p className="portal-card-copy">No resources yet.</p>}
             {relatedLessons.length > 0 ? <div style={{ marginTop: 20 }}><h3>Related lessons</h3>{relatedLessons.map((relatedLesson) => <Link key={relatedLesson.id} className="button secondary" href={`/portal/education/${relatedLesson.slug}`} style={{ display: 'inline-block', marginTop: 8 }}>{relatedLesson.title}</Link>)}</div> : null}
+            <div style={{ marginTop: 20 }}>
+              {previousLesson ? <Link className="button secondary" href={`/portal/education/${previousLesson.slug}`} style={{ display: 'inline-block', marginTop: 8 }}>Previous lesson</Link> : null}
+              {nextLesson ? <Link className="button secondary" href={`/portal/education/${nextLesson.slug}`} style={{ display: 'inline-block', marginTop: 8, marginLeft: previousLesson ? 8 : 0 }}>Next lesson</Link> : null}
+            </div>
             <div style={{ marginTop: 20 }}>
               <Link className="button secondary" href="/portal/education">Continue learning</Link>
             </div>

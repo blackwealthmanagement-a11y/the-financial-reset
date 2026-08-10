@@ -56,6 +56,39 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ lessons: lessons || [] });
   }
 
+  if (view === 'learning-paths') {
+    const { data: paths, error } = await client.from('education_learning_paths').select('*').eq('published', true).order('featured', { ascending: false }).order('sort_order', { ascending: true });
+    if (error) {
+      return NextResponse.json({ error: 'We could not load learning paths.' }, { status: 500 });
+    }
+    return NextResponse.json({ paths: paths || [] });
+  }
+
+  if (view === 'learning-path') {
+    const pathSlug = request.nextUrl.searchParams.get('slug');
+    if (!pathSlug) {
+      return NextResponse.json({ error: 'A path slug is required.' }, { status: 400 });
+    }
+
+    const { data: path, error: pathError } = await client.from('education_learning_paths').select('*').eq('slug', pathSlug).eq('published', true).maybeSingle();
+    if (pathError || !path) {
+      return NextResponse.json({ error: 'Learning path not found.' }, { status: 404 });
+    }
+
+    const { data: links } = await client.from('learning_path_lessons').select('*').eq('learning_path_id', path.id).order('sort_order', { ascending: true });
+    const lessonIds = (links || []).map((link) => link.lesson_id);
+    const { data: lessons } = lessonIds.length ? await client.from('education_lessons').select('*').in('id', lessonIds).eq('published', true).order('sort_order', { ascending: true }) : { data: [] };
+    const percentComplete = 0;
+    const estimatedCompletion = 'Continue learning';
+
+    return NextResponse.json({ path: { ...path, lessons: lessons || [], percentComplete, estimatedCompletion } });
+  }
+
+  if (view === 'recommended-path') {
+    const { data: path } = await client.from('education_learning_paths').select('*').eq('published', true).eq('featured', true).order('sort_order', { ascending: true }).limit(1).maybeSingle();
+    return NextResponse.json({ path });
+  }
+
   const { data: categories, error } = await client
     .from('education_categories')
     .select('*')

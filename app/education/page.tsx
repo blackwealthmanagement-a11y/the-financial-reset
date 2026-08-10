@@ -6,7 +6,7 @@ import { GraduationCap, Search } from 'lucide-react';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 import type { EducationCategory, EducationLesson } from '../../types/education';
-import { getPublicCategories, getPublicLessons } from '../../services/education.service';
+import { getLearningPaths, getPublicCategories, getPublicLessons } from '../../services/education.service';
 
 const difficultyOrder = ['beginner', 'intermediate', 'advanced'];
 const lessonTypeOrder = ['article', 'guide', 'checklist', 'video', 'worksheet'];
@@ -14,6 +14,7 @@ const lessonTypeOrder = ['article', 'guide', 'checklist', 'video', 'worksheet'];
 export default function EducationPage() {
   const [categories, setCategories] = useState<EducationCategory[]>([]);
   const [lessons, setLessons] = useState<EducationLesson[]>([]);
+  const [paths, setPaths] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [difficulty, setDifficulty] = useState('all');
@@ -22,9 +23,10 @@ export default function EducationPage() {
   useEffect(() => {
     async function loadContent() {
       try {
-        const [{ data: categoriesData }, { data: lessonsData }] = await Promise.all([getPublicCategories(), getPublicLessons()]);
+        const [{ data: categoriesData }, { data: lessonsData }, { data: pathsData }] = await Promise.all([getPublicCategories(), getPublicLessons(), getLearningPaths()]);
         setCategories(categoriesData || []);
         setLessons(lessonsData || []);
+        setPaths(pathsData || []);
       } catch (error) {
         console.error(error);
       }
@@ -36,6 +38,7 @@ export default function EducationPage() {
   const featuredLessons = useMemo(() => lessons.filter((lesson) => lesson.featured), [lessons]);
   const beginnerGuides = useMemo(() => lessons.filter((lesson) => lesson.difficulty === 'beginner'), [lessons]);
   const recommendedLessons = useMemo(() => lessons.slice(0, 6), [lessons]);
+  const spotlightLesson = useMemo(() => featuredLessons[0] || lessons[0] || null, [featuredLessons, lessons]);
 
   const filteredLessons = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -67,12 +70,29 @@ export default function EducationPage() {
               </label>
             </div>
             <div className="portal-grid" style={{ marginTop: 24 }}>
+              <div className="portal-card portal-card-gold" style={{ gridColumn: '1 / -1' }}>
+                <div className="portal-card-header">
+                  <div>
+                    <p className="eyebrow">Momentum snapshot</p>
+                    <h3>{lessons.length} lessons ready to explore</h3>
+                  </div>
+                  <span className="portal-pill">{featuredLessons.length} featured</span>
+                </div>
+                <p className="portal-card-copy" style={{ marginTop: 8 }}>Start with {spotlightLesson?.title || 'a featured lesson'} and build your confidence from there.</p>
+              </div>
               <div className="portal-card portal-card-gold">
-                <p className="portal-card-copy"><strong>Browse by category</strong></p>
+                <h3>Learning paths</h3>
+                {paths.length > 0 ? paths.map((path) => <Link key={path.id} className="button secondary" href={`/education/path/${path.slug}`} style={{ display: 'inline-block', marginTop: 8 }}>{path.title}</Link>) : <p className="portal-card-copy">Learning paths will appear here soon.</p>}
+              </div>
+              <div className="portal-card portal-card-gold">
+                <div className="portal-card-header">
+                  <h3>Browse by category</h3>
+                  <span className="portal-pill">{categories.length} topics</span>
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <button type="button" className={`button secondary ${activeCategory === 'all' ? 'is-active' : ''}`} onClick={() => setActiveCategory('all')}>All lessons</button>
+                  <button type="button" className="button secondary" onClick={() => setActiveCategory('all')} style={activeCategory === 'all' ? { backgroundColor: '#0B1F33', color: '#fff' } : undefined}>All lessons</button>
                   {categories.map((category) => (
-                    <button key={category.id} type="button" className={`button secondary ${activeCategory === category.id ? 'is-active' : ''}`} onClick={() => setActiveCategory(category.id)}>{category.name}</button>
+                    <button key={category.id} type="button" className="button secondary" onClick={() => setActiveCategory(category.id)} style={activeCategory === category.id ? { backgroundColor: '#0B1F33', color: '#fff' } : undefined}>{category.name}</button>
                   ))}
                 </div>
               </div>
@@ -112,19 +132,27 @@ export default function EducationPage() {
               </div>
             </div>
             <div className="portal-grid" style={{ marginTop: 24 }}>
+              {filteredLessons.length === 0 ? (
+                <section className="portal-card portal-card-gold" style={{ gridColumn: '1 / -1' }}>
+                  <h3>No lessons match those filters yet</h3>
+                  <p className="portal-card-copy">Try switching categories or widening your search to find more helpful material.</p>
+                </section>
+              ) : null}
               {filteredLessons.map((lesson) => (
-                <article key={lesson.id} className="portal-card portal-card-navy">
+                <article key={lesson.id} className={`portal-card portal-card-navy education-card ${lesson.featured ? 'education-card--featured' : ''}`}>
                   <div className="portal-card-header">
                     <h3><GraduationCap size={18} /> {lesson.title}</h3>
                     {lesson.featured ? <span className="portal-pill">Featured</span> : null}
                   </div>
-                  <p className="portal-card-copy">{lesson.excerpt || lesson.content}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                    {lesson.difficulty ? <span className="portal-pill">{lesson.difficulty}</span> : null}
-                    {lesson.lesson_type ? <span className="portal-pill">{lesson.lesson_type}</span> : null}
-                    {lesson.reading_time_minutes ? <span className="portal-pill">{lesson.reading_time_minutes} min read</span> : null}
+                  <p className="education-card__summary">{lesson.excerpt || lesson.content}</p>
+                  <div className="education-card__meta">
+                    {lesson.difficulty ? <span className="education-badge">{lesson.difficulty}</span> : null}
+                    {lesson.lesson_type ? <span className="education-badge education-badge--muted">{lesson.lesson_type}</span> : null}
+                    {lesson.reading_time_minutes ? <span className="education-badge education-badge--muted">{lesson.reading_time_minutes} min read</span> : null}
                   </div>
-                  <Link className="button secondary" href={`/education/${lesson.slug}`} style={{ marginTop: 16 }}>Open lesson</Link>
+                  <div className="education-card__actions">
+                    <Link className="button secondary" href={`/education/${lesson.slug}`}>Open lesson</Link>
+                  </div>
                 </article>
               ))}
             </div>

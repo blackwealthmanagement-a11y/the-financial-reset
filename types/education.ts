@@ -57,3 +57,35 @@ export interface ClientLessonProgress {
   created_at: string;
   updated_at: string;
 }
+
+export interface EducationLearningPath {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  featured: boolean;
+  published: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LearningPathLessonLink {
+  id: string;
+  learning_path_id: string;
+  lesson_id: string;
+  sort_order: number;
+  required: boolean;
+  created_at: string;
+}
+
+export interface ClientLearningPathProgress {
+  id: string;
+  client_id: string;
+  learning_path_id: string;
+  percent_complete: number;
+  started_at: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

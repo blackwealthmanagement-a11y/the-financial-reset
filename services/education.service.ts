@@ -1,5 +1,5 @@
 import { browserSupabase } from '../lib/supabase/browser';
-import type { ClientLessonProgress, EducationCategory, EducationLesson, EducationLessonRelation, LessonResource } from '../types/education';
+import type { ClientLessonProgress, ClientLearningPathProgress, EducationCategory, EducationLearningPath, EducationLesson, EducationLessonRelation, LessonResource, LearningPathLessonLink } from '../types/education';
 
 async function getAuthHeaders() {
   if (!browserSupabase) {
@@ -97,6 +97,57 @@ export async function getPortalLessonBySlug(slug: string) {
     progress: payload.progress as ClientLessonProgress | null,
     error: null as Error | null
   };
+}
+
+export async function getLearningPaths() {
+  const response = await fetch('/api/education/public?view=learning-paths');
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'We could not load learning paths.');
+  }
+  return { data: payload.paths as EducationLearningPath[], error: null as Error | null };
+}
+
+export async function getLearningPath(slug: string) {
+  const response = await fetch(`/api/education/public?view=learning-path&slug=${encodeURIComponent(slug)}`);
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'We could not load this learning path.');
+  }
+  return { data: payload.path as { id: string; title: string; slug: string; description: string | null; lessons: EducationLesson[]; percentComplete: number; estimatedCompletion: string }, error: null as Error | null };
+}
+
+export async function getClientLearningProgress() {
+  const headers = await getAuthHeaders();
+  const response = await fetch('/api/portal/education?view=path-progress', { headers });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'We could not load your learning path progress.');
+  }
+  return { data: payload.progress as ClientLessonProgress[], error: null as Error | null };
+}
+
+export async function updateLearningProgress(pathSlug: string, completed: boolean) {
+  const headers = await getAuthHeaders();
+  const response = await fetch('/api/portal/education', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify({ pathSlug, completed })
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'We could not update your learning path progress.');
+  }
+  return { data: payload.progress as ClientLearningPathProgress, error: null as Error | null };
+}
+
+export async function getRecommendedPath() {
+  const response = await fetch('/api/education/public?view=recommended-path');
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'We could not load a recommended path.');
+  }
+  return { data: payload.path as EducationLearningPath | null, error: null as Error | null };
 }
 
 export async function getCRMLessons() {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { EducationCategory, EducationLesson } from '../../../types/education';
 import { getCRMCategories, getCRMLessons, saveCRMLesson, saveCRMCategory, saveLessonResource } from '../../../services/education.service';
 
@@ -22,6 +22,7 @@ export default function CRMEducationPage() {
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceLessonId, setResourceLessonId] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -36,6 +37,9 @@ export default function CRMEducationPage() {
     loadData();
   }, []);
 
+  const publishedLessons = useMemo(() => lessons.filter((lesson) => lesson.published), [lessons]);
+  const featuredLessons = useMemo(() => lessons.filter((lesson) => lesson.featured), [lessons]);
+
   async function handleCreateCategory(event: React.FormEvent) {
     event.preventDefault();
     const { data } = await saveCRMCategory({ name: categoryName, slug: categorySlug, description: null });
@@ -43,6 +47,7 @@ export default function CRMEducationPage() {
       setCategories((current) => [...current, data]);
       setCategoryName('');
       setCategorySlug('');
+      setStatusMessage(`Category ${data.name} created.`);
     }
   }
 
@@ -72,6 +77,7 @@ export default function CRMEducationPage() {
       setLessonType('article');
       setFeatured(false);
       setPublished(false);
+      setStatusMessage(`Lesson ${data.title} saved.`);
     }
   }
 
@@ -82,6 +88,7 @@ export default function CRMEducationPage() {
       setResourceTitle('');
       setResourceUrl('');
       setResourceLessonId('');
+      setStatusMessage(`Resource ${data.title} attached.`);
     }
   }
 
@@ -92,6 +99,7 @@ export default function CRMEducationPage() {
           <div className="eyebrow">CRM education hub</div>
           <h1>Education content management</h1>
           <p>Create categories, publish lessons, and attach public-facing PDFs.</p>
+          {statusMessage ? <p className="portal-card-copy" style={{ marginTop: 12 }}>{statusMessage}</p> : null}
 
           <div className="portal-grid" style={{ marginTop: 24 }}>
             <div className="portal-card portal-card-gold">
@@ -130,11 +138,19 @@ export default function CRMEducationPage() {
           </div>
 
           <div className="portal-grid" style={{ marginTop: 24 }}>
+            <section className="portal-card portal-card-gold">
+              <h3>Publishing snapshot</h3>
+              <p className="portal-card-copy">{publishedLessons.length} published lessons and {featuredLessons.length} featured lessons.</p>
+            </section>
             {lessons.map((lesson) => (
               <article key={lesson.id} className="portal-card portal-card-navy">
-                <h3>{lesson.title}</h3>
+                <div className="portal-card-header">
+                  <h3>{lesson.title}</h3>
+                  {lesson.featured ? <span className="portal-pill">Featured</span> : null}
+                </div>
                 <p className="portal-card-copy">Published: {lesson.published ? 'Yes' : 'No'}</p>
-                <p className="portal-card-copy">Featured: {lesson.featured ? 'Yes' : 'No'}</p>
+                <p className="portal-card-copy">Difficulty: {lesson.difficulty || 'Unspecified'}</p>
+                <p className="portal-card-copy">Type: {lesson.lesson_type || 'Unspecified'}</p>
               </article>
             ))}
           </div>

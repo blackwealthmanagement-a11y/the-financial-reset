@@ -92,6 +92,7 @@ export default function CRMPage() {
             </div>
             <div className="crm-toolbar-stack">
               <Link className="button secondary" href="/crm/education">Education</Link>
+              <Link className="button secondary" href="/crm/education/paths">Learning Paths</Link>
             </div>
             <div className="crm-toolbar-stack">
               <CRMViewSwitcher activeView={view} onChange={setView} />

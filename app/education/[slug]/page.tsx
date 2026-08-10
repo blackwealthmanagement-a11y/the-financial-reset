@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
-import type { EducationCategory, EducationLesson, EducationLessonRelation, LessonResource } from '../../../types/education';
-import { getPublicLessonBySlug } from '../../../services/education.service';
+import type { EducationCategory, EducationLesson, LessonResource } from '../../../types/education';
+import { getPublicLessonBySlug, getPublicLessons } from '../../../services/education.service';
 
 export default function EducationLessonPage() {
   const params = useParams();
@@ -14,20 +14,26 @@ export default function EducationLessonPage() {
   const [category, setCategory] = useState<EducationCategory | null>(null);
   const [resources, setResources] = useState<LessonResource[]>([]);
   const [relatedLessons, setRelatedLessons] = useState<EducationLesson[]>([]);
+  const [allLessons, setAllLessons] = useState<EducationLesson[]>([]);
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   useEffect(() => {
     async function loadLesson() {
       if (!slug) return;
-      const { data, category: categoryData, resources: resourceData, relations, relatedLessons: relatedLessonData } = await getPublicLessonBySlug(slug);
+      const [{ data, category: categoryData, resources: resourceData, relatedLessons: relatedLessonData }, { data: lessonsData }] = await Promise.all([getPublicLessonBySlug(slug), getPublicLessons()]);
       setLesson(data || null);
       setCategory(categoryData || null);
       setResources(resourceData || []);
       setRelatedLessons(relatedLessonData || []);
+      setAllLessons(lessonsData || []);
     }
 
     loadLesson();
   }, [slug]);
+
+  const currentIndex = useMemo(() => allLessons.findIndex((entry) => entry.id === lesson?.id), [allLessons, lesson]);
+  const previousLesson = useMemo(() => (currentIndex > 0 ? allLessons[currentIndex - 1] : null), [allLessons, currentIndex]);
+  const nextLesson = useMemo(() => (currentIndex >= 0 ? allLessons[currentIndex + 1] || null : null), [allLessons, currentIndex]);
 
   if (!lesson) {
     return (
@@ -89,7 +95,9 @@ export default function EducationLessonPage() {
                 {relatedLessons.map((relatedLesson) => <Link key={relatedLesson.id} className="button secondary" href={`/education/${relatedLesson.slug}`} style={{ display: 'inline-block', marginTop: 8 }}>{relatedLesson.title}</Link>)}
               </div>
             ) : null}
-            <div style={{ marginTop: 24 }}>
+            <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {previousLesson ? <Link className="button secondary" href={`/education/${previousLesson.slug}`}>Previous lesson</Link> : null}
+              {nextLesson ? <Link className="button secondary" href={`/education/${nextLesson.slug}`}>Next lesson</Link> : null}
               <Link className="button secondary" href="/education">Back to all lessons</Link>
             </div>
           </div>

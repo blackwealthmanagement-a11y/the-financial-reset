@@ -18,9 +18,24 @@ export interface EducationLesson {
   featured: boolean;
   published: boolean;
   sort_order: number;
+  reading_time_minutes: number | null;
+  difficulty: string | null;
+  lesson_type: string | null;
+  key_takeaways: string[] | null;
+  action_steps: string[] | null;
+  featured_image_url: string | null;
+  video_url: string | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface EducationLessonRelation {
+  id: string;
+  lesson_id: string;
+  related_lesson_id: string;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface LessonResource {

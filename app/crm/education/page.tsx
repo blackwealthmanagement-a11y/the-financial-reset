@@ -11,8 +11,11 @@ export default function CRMEducationPage() {
   const [categorySlug, setCategorySlug] = useState('');
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonSlug, setLessonSlug] = useState('');
-  const [lessonContent, setLessonContent] = useState('');
   const [lessonExcerpt, setLessonExcerpt] = useState('');
+  const [lessonContent, setLessonContent] = useState('');
+  const [lessonDifficulty, setLessonDifficulty] = useState('beginner');
+  const [lessonReadingTime, setLessonReadingTime] = useState('');
+  const [lessonType, setLessonType] = useState('article');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [featured, setFeatured] = useState(false);
   const [published, setPublished] = useState(false);
@@ -51,6 +54,9 @@ export default function CRMEducationPage() {
       slug: lessonSlug,
       excerpt: lessonExcerpt,
       content: lessonContent,
+      difficulty: lessonDifficulty,
+      reading_time_minutes: lessonReadingTime ? Number(lessonReadingTime) : null,
+      lesson_type: lessonType,
       featured,
       published,
       sort_order: 0
@@ -61,6 +67,9 @@ export default function CRMEducationPage() {
       setLessonSlug('');
       setLessonExcerpt('');
       setLessonContent('');
+      setLessonDifficulty('beginner');
+      setLessonReadingTime('');
+      setLessonType('article');
       setFeatured(false);
       setPublished(false);
     }
@@ -101,6 +110,9 @@ export default function CRMEducationPage() {
                 <label className="field"><span>Category</span><select value={selectedCategoryId} onChange={(event) => setSelectedCategoryId(event.target.value)}>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
                 <label className="field"><span>Excerpt</span><input value={lessonExcerpt} onChange={(event) => setLessonExcerpt(event.target.value)} /></label>
                 <label className="field"><span>Content</span><textarea value={lessonContent} onChange={(event) => setLessonContent(event.target.value)} rows={4} /></label>
+                <label className="field"><span>Difficulty</span><select value={lessonDifficulty} onChange={(event) => setLessonDifficulty(event.target.value)}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
+                <label className="field"><span>Reading time (minutes)</span><input value={lessonReadingTime} onChange={(event) => setLessonReadingTime(event.target.value)} /></label>
+                <label className="field"><span>Lesson type</span><select value={lessonType} onChange={(event) => setLessonType(event.target.value)}><option value="article">Article</option><option value="guide">Guide</option><option value="checklist">Checklist</option><option value="video">Video</option><option value="worksheet">Worksheet</option></select></label>
                 <label className="field"><span><input type="checkbox" checked={featured} onChange={() => setFeatured((value) => !value)} /> Featured</span></label>
                 <label className="field"><span><input type="checkbox" checked={published} onChange={() => setPublished((value) => !value)} /> Publish</span></label>
                 <button className="button primary" type="submit">Create lesson</button>

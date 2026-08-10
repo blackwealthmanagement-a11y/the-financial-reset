@@ -1,5 +1,5 @@
 import { browserSupabase } from '../lib/supabase/browser';
-import type { ClientLessonProgress, EducationCategory, EducationLesson, LessonResource } from '../types/education';
+import type { ClientLessonProgress, EducationCategory, EducationLesson, EducationLessonRelation, LessonResource } from '../types/education';
 
 async function getAuthHeaders() {
   if (!browserSupabase) {
@@ -38,7 +38,14 @@ export async function getPublicLessonBySlug(slug: string) {
   if (!response.ok) {
     throw new Error(payload?.error || 'We could not load this lesson.');
   }
-  return { data: payload.lesson as EducationLesson, error: null as Error | null };
+  return {
+    data: payload.lesson as EducationLesson,
+    relations: payload.relations as EducationLessonRelation[],
+    resources: payload.resources as LessonResource[],
+    category: payload.category as EducationCategory | null,
+    relatedLessons: payload.relatedLessons as EducationLesson[],
+    error: null as Error | null
+  };
 }
 
 export async function getPortalLessons() {
@@ -73,6 +80,23 @@ export async function toggleLessonProgress(lessonId: string, completed: boolean)
     throw new Error(payload?.error || 'We could not update lesson progress.');
   }
   return { data: payload.progress as ClientLessonProgress, error: null as Error | null };
+}
+
+export async function getPortalLessonBySlug(slug: string) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`/api/portal/education?slug=${encodeURIComponent(slug)}`, { headers });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'We could not load this lesson.');
+  }
+  return {
+    data: payload.lesson as EducationLesson,
+    relations: payload.relations as EducationLessonRelation[],
+    resources: payload.resources as LessonResource[],
+    category: payload.category as EducationCategory | null,
+    progress: payload.progress as ClientLessonProgress | null,
+    error: null as Error | null
+  };
 }
 
 export async function getCRMLessons() {

@@ -28,7 +28,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Lesson not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ lesson });
+    const { data: category } = await client.from('education_categories').select('*').eq('id', lesson.category_id).maybeSingle();
+    const { data: resources } = await client.from('lesson_resources').select('*').eq('lesson_id', lesson.id).order('created_at', { ascending: true });
+    const { data: relations } = await client.from('education_lesson_relations').select('*').eq('lesson_id', lesson.id).order('sort_order', { ascending: true }).order('created_at', { ascending: true });
+
+    const relatedLessonIds = (relations || []).map((relation) => relation.related_lesson_id);
+    const { data: relatedLessons } = relatedLessonIds.length
+      ? await client.from('education_lessons').select('*').in('id', relatedLessonIds).eq('published', true).order('featured', { ascending: false }).order('sort_order', { ascending: true })
+      : { data: [] };
+
+    return NextResponse.json({ lesson, category, resources: resources || [], relations: relations || [], relatedLessons: relatedLessons || [] });
   }
 
   if (view === 'lessons') {

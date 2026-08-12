@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
       .from('clients')
       .update({ auth_user_id: authUserId, updated_at: new Date().toISOString() })
       .eq('id', clientRecord.id)
-      .eq('auth_user_id', null)
+      .is('auth_user_id', null)
       .select('id, lead_id, auth_user_id')
       .single();
 
@@ -302,7 +302,11 @@ export async function POST(request: NextRequest) {
       console.error('Failed to link invited auth user to client.', {
         clientId: clientRecord.id,
         authUserId,
-        error: linkError?.message || 'Unknown link error'
+        code: linkError?.code,
+        details: linkError?.details,
+        hint: linkError?.hint,
+        message: linkError?.message,
+        stack: linkError ? String(linkError) : undefined
       });
       return buildJsonResponse({ error: 'The portal invite was sent, but the client account could not be linked. Please contact support.' }, 500);
     }

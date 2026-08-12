@@ -184,3 +184,17 @@ export async function getMyPaymentHistory() {
   }
   return { data: payload.payments as PaymentRecord[], error: null as Error | null };
 }
+
+export async function createStripeCheckoutSession(invoiceId: string) {
+  const headers = await getAuthHeaders();
+  const response = await fetch('/api/portal/billing/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify({ invoiceId })
+  });
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error || 'We could not start a secure checkout session.');
+  }
+  return { data: json as { sessionId: string; url: string; invoice: ClientInvoice }, error: null as Error | null };
+}

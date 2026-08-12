@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PortalLayout } from '../../../components/client/PortalLayout';
-import { getMyInvoices, getMyPaymentHistory } from '../../../services/billing.service';
+import { createStripeCheckoutSession, getMyInvoices, getMyPaymentHistory } from '../../../services/billing.service';
 import { formatCurrencyCents } from '../../../utils/format';
 import type { ClientInvoice, PaymentRecord } from '../../../types/billing';
 
@@ -11,6 +11,29 @@ export default function PortalBillingPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null);
+
+  async function handleCheckout(invoice: ClientInvoice) {
+    if (invoice.status === 'paid' || invoice.status === 'cancelled') {
+      return;
+    }
+
+    setCheckoutLoadingId(invoice.id);
+    setError(null);
+
+    try {
+      const { data } = await createStripeCheckoutSession(invoice.id);
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError('We could not open the secure checkout page.');
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'We could not start secure checkout.');
+    } finally {
+      setCheckoutLoadingId(null);
+    }
+  }
 
   useEffect(() => {
     async function loadBilling() {
@@ -54,6 +77,17 @@ export default function PortalBillingPage() {
                       <p className="portal-card-copy"><strong>Due:</strong> {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '—'}</p>
                       <p className="portal-card-copy"><strong>Amount:</strong> {formatCurrencyCents(invoice.total_cents, invoice.currency)}</p>
                       <p className="portal-card-copy"><strong>Status:</strong> {invoice.status}</p>
+                      {invoice.status !== 'paid' && invoice.status !== 'cancelled' ? (
+                        <button
+                          type="button"
+                          className="button primary"
+                          style={{ marginTop: 12 }}
+                          onClick={() => handleCheckout(invoice)}
+                          disabled={checkoutLoadingId === invoice.id}
+                        >
+                          {checkoutLoadingId === invoice.id ? 'Opening checkout…' : 'Pay securely'}
+                        </button>
+                      ) : null}
                     </article>
                   ))}
                 </div>

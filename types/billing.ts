@@ -2,7 +2,7 @@ export type BillingServiceType = 'personal_credit_education' | 'business_credit_
 export type BillingType = 'one_time' | 'monthly';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
-export type PaymentMethod = 'manual' | 'cash' | 'bank_transfer' | 'zelle' | 'other';
+export type PaymentMethod = 'manual' | 'cash' | 'bank_transfer' | 'zelle' | 'stripe' | 'other';
 
 export interface BillingProduct {
   id: string;
@@ -52,8 +52,14 @@ export interface PaymentRecord {
   amount_cents: number;
   currency: string;
   payment_method: PaymentMethod;
+  processor?: 'manual' | 'stripe';
   status: PaymentStatus;
   external_reference: string | null;
+  stripe_checkout_session_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_charge_id?: string | null;
+  stripe_metadata?: Record<string, string | null> | null;
   paid_at: string | null;
   created_at: string;
 }

@@ -138,7 +138,7 @@ create table if not exists public.payment_records (
     references public.clients (id)
     on delete cascade,
   constraint payment_records_payment_method_check
-    check (payment_method in ('manual', 'cash', 'bank_transfer', 'zelle', 'other')),
+    check (payment_method in ('manual', 'cash', 'bank_transfer', 'zelle', 'stripe', 'other')),
   constraint payment_records_status_check
     check (status in ('pending', 'paid', 'failed', 'refunded')),
   constraint payment_records_paid_at_check

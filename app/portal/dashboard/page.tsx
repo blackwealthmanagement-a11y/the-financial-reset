@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardCard } from '../../../components/client/DashboardCard';
 import { DashboardHero } from '../../../components/client/DashboardHero';
 import { DashboardStats } from '../../../components/client/DashboardStats';
+import { JourneyTimeline } from '../../../components/client/JourneyTimeline';
 import { NextActionCard } from '../../../components/client/NextActionCard';
 import { PortalLayout } from '../../../components/client/PortalLayout';
 import { RecentActivityCard } from '../../../components/client/RecentActivityCard';
@@ -70,6 +71,7 @@ export default function PortalDashboardPage() {
 
       <DashboardStats activity={dashboardData.activity} />
       <NextActionCard activity={dashboardData.activity} />
+      <JourneyTimeline data={dashboardData} />
 
       <div className="portal-grid" style={{ marginTop: 16 }}>
         <UpcomingConsultationCard date={dashboardData.consultationDate} status={dashboardData.consultationStatus} summary={dashboardData.consultationSummary} />

@@ -1,15 +1,14 @@
 # The Financial Reset Roadmap
 
-This roadmap outlines the planned evolution of The Financial Reset platform.
+This roadmap outlines the evolution of **The Financial Reset** platform from a CRM system into a complete financial wellness ecosystem for clients.
 
 ---
 
 # ✅ Version 2.0 — CRM Foundation
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - Marketing Website
 - Client Intake Portal
 - Supabase Integration
@@ -23,14 +22,13 @@ Features
 
 # ✅ Version 2.1 — Architecture Refactor
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - Modular Folder Structure
 - Shared Services
 - Custom Hooks
-- Types
+- Shared Types
 - Utilities
 - Reusable Components
 
@@ -38,35 +36,32 @@ Features
 
 # ✅ Version 2.2 — Consultation Booking
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - Calendly Integration
-- Booking Page
+- Consultation Booking
 - Booking Workflow
 
 ---
 
 # ✅ Version 2.3 — Consultation Management
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - Consultation Tracking
 - Consultation Outcomes
 - Consultation Summaries
-- Consultation Dashboard Metrics
+- Dashboard Metrics
 
 ---
 
 # ✅ Version 2.4 — Task Management
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - CRM Tasks
 - Priority Levels
 - Due Dates
@@ -77,10 +72,9 @@ Features
 
 # ✅ Version 2.5 — Workflow Automation
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - Lead Automation
 - Follow-up Automation
 - Workflow Engine
@@ -92,71 +86,209 @@ Features
 
 # ✅ Version 2.6 — Communication Center
 
-Completed
+**Completed**
 
-Features
-
-- CRM Email Templates
+### Features
+- Email Templates
 - Email History
 - Resend Integration
-- Secure Email Sending
-- Retry-safe Delivery
+- Secure Email Delivery
+- Retry-safe Sending
 - Communication Timeline
 
 ---
 
-# ✅ Version 2.7 — CRM Sales Pipeline Board
+# ✅ Version 2.7 — CRM Sales Pipeline
 
-Completed
+**Completed**
 
-Features
-
+### Features
 - Visual Pipeline Board
 - Drag & Drop Workflow
-- Table / Pipeline View
+- Table & Pipeline Views
 - Search & Filters
-- Column Counts
+- Pipeline Metrics
+- Activity Timeline
 - Keyboard Accessibility
 - Mobile Responsive Layout
-- Automatic Status Updates
-- Activity Timeline Integration
 
 ---
 
-## ✅ Version 3.0
-- [x] Client Portal
-- [x] Client Identity Layer
-- [x] Lead → Client Conversion
-- [x] Portal Invitations
-- [x] Password Setup
-- [x] Live Dashboard
+# ✅ Version 3.0 — Client Portal Foundation
+
+**Completed**
+
+### Features
+- Client Portal
+- Client Identity Layer
+- Lead → Client Conversion
+- Portal Invitations
+- Password Setup
+- Live Client Dashboard
 
 ---
 
-## Version 3.1 ✅ COMPLETE
-- Client Self-Service Scheduling
+# ✅ Version 3.1 — Client Self-Service
 
-## ✅ Version 3.2 — Secure Document Vault
+**Completed**
 
+### Features
+- Client Scheduling
+- Appointment Management
+- Self-Service Portal Access
 
-## ✅ Version 3.3 Phase 1 — Billing Foundation
-- Billing & Payments
+---
 
-## ✅ Version 3.4 — Education Hub COMPLETE
-  ✅ Phase 1 — Foundation
-  ✅ Phase 2 — Rich Lessons
-  ✅ Phase 3 — Guided Learning Paths
-  ✅ Phase 4 — Polish & Engagement
+# ✅ Version 3.2 — Secure Document Vault
 
-🚧 Version 3.3 Phase 2 — Stripe / Online Payments
+**Completed**
 
-⏳ Version 3.5 — Automation & Intelligence
+### Features
+- Secure Client Uploads
+- Admin Document Management
+- Client Document Vault
+- Document Review Workflow
 
-🔜 Version 4.0 — Public Resource & Learning Center
+---
 
-## 🌐 Version 4.0
+# ✅ Version 3.3 — Billing & Payments
+
+**Completed**
+
+### Phase 1
+- Billing Foundation
+- Products & Services
+- Invoice Management
+
+### Phase 2
+- Stripe Checkout
+- Secure Online Payments
+- Stripe Webhooks
+- Payment Reconciliation
+- Client Billing Portal
+- Professional Invoice PDFs
+- Payment Receipt PDFs
+- Receipt Email Attachments
+- Retry-safe Payment Processing
+
+---
+
+# ✅ Version 3.4 — Education Hub
+
+**Completed**
+
+### Phase 1
+- Education Foundation
+
+### Phase 2
+- Rich Lessons
+
+### Phase 3
+- Guided Learning Paths
+
+### Phase 4
+- Education Hub Polish
+
+---
+
+# ⏳ Version 3.5 — Automation & Intelligence
+
+**Planned**
+
+### Planned Features
+- Smart Client Automations
+- Workflow Intelligence
+- Reminder Engine
+- AI-Assisted CRM Features
+- Client Progress Automation
+- Business Insights & Reporting
+
+---
+
+# ✅ Version 3.6 Phase 1 — Client Dashboard Polish
+
+**Completed**
+
+### Features
+- Modern Dashboard Hero
+- Dashboard Statistics
+- Intelligent Next Action Card
+- Improved Dashboard Layout
+- Live Client Metrics
+- Professional Billing Documents
+- Improved Branding & Contact Information
+
+---
+
+# 🚧 Version 3.6 Phase 2 — Financial Reset Journey
+
+**In Progress**
+
+### Planned Features
+- Interactive Client Journey Timeline
+- Current Step Tracking
+- Milestone Progress
+- Completion Dates
+- Estimated Next Steps
+- Progress Notes
+- Educational Tips
+- Timeline Status Indicators
+
+---
+
+# 🔜 Version 3.6 Phase 3 — Education Experience
+
+### Planned Features
+- Expanded Credit Education Library
+- Business Credit Courses
+- Financial Wellness Curriculum
+- Identity Protection Resources
+- Downloadable Guides
+- Videos
+- Quizzes
+- Lesson Completion Tracking
+- Certificates & Achievements
+
+---
+
+# 🔜 Version 3.6 Phase 4 — Scheduling Experience
+
+### Planned Features
+- Improved Consultation Booking
+- Appointment History
+- Rescheduling
+- Reminder System
+- Availability Management
+- Consultation Timeline
+
+---
+
+# 🔜 Version 3.6 Phase 5 — Launch Preparation
+
+### Planned Features
+- Production Stripe
+- Live Webhooks
+- Custom Business Email
+- SEO Optimization
+- Analytics
+- Performance Optimization
+- Accessibility Review
+- Legal Pages
+- Privacy Policy
+- Terms of Service
+- Mobile QA
+- Production Readiness Audit
+
+---
+
+# 🌐 Version 4.0 — Public Financial Learning Center
+
+### Planned Features
 - Public Resource Center
-- Credit Learning Center
-- Business Credit Learning Center
+- Credit Education Library
+- Business Credit Academy
+- Financial Wellness Library
 - Blog
-- SEO Library
+- SEO Knowledge Base
+- Downloadable Resources
+- Community Learning Platform

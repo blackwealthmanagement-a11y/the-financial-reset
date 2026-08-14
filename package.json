@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:pdf": "tsx --test lib/billing/pdf/__tests__/pdf-generation.test.ts"
   },
   "dependencies": {
     "@stripe/stripe-js": "latest",
@@ -13,6 +14,7 @@
     "date-fns-tz": "^3.2.0",
     "lucide-react": "latest",
     "next": "latest",
+    "pdf-lib": "^1.17.1",
     "react": "latest",
     "react-dom": "latest",
     "resend": "^6.17.2",
@@ -22,6 +24,7 @@
     "@types/node": "^22.20.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.3"
   }
 }

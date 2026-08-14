@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PortalLayout } from '../../../components/client/PortalLayout';
-import { createStripeCheckoutSession, getMyInvoices, getMyPaymentHistory } from '../../../services/billing.service';
+import { createStripeCheckoutSession, downloadMyInvoicePdf, downloadMyReceiptPdf, getMyInvoices, getMyPaymentHistory } from '../../../services/billing.service';
 import { formatCurrencyCents } from '../../../utils/format';
 import type { ClientInvoice, PaymentRecord } from '../../../types/billing';
 
@@ -32,6 +32,22 @@ export default function PortalBillingPage() {
       setError(checkoutError instanceof Error ? checkoutError.message : 'We could not start secure checkout.');
     } finally {
       setCheckoutLoadingId(null);
+    }
+  }
+
+  async function handleDownloadInvoice(invoiceId: string) {
+    try {
+      await downloadMyInvoicePdf(invoiceId);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'We could not download the invoice PDF.');
+    }
+  }
+
+  async function handleDownloadReceipt(paymentId: string) {
+    try {
+      await downloadMyReceiptPdf(paymentId);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'We could not download the receipt PDF.');
     }
   }
 
@@ -77,17 +93,21 @@ export default function PortalBillingPage() {
                       <p className="portal-card-copy"><strong>Due:</strong> {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '—'}</p>
                       <p className="portal-card-copy"><strong>Amount:</strong> {formatCurrencyCents(invoice.total_cents, invoice.currency)}</p>
                       <p className="portal-card-copy"><strong>Status:</strong> {invoice.status}</p>
-                      {invoice.status !== 'paid' && invoice.status !== 'cancelled' ? (
-                        <button
-                          type="button"
-                          className="button primary"
-                          style={{ marginTop: 12 }}
-                          onClick={() => handleCheckout(invoice)}
-                          disabled={checkoutLoadingId === invoice.id}
-                        >
-                          {checkoutLoadingId === invoice.id ? 'Opening checkout…' : 'Pay securely'}
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                        <button type="button" className="button secondary" onClick={() => handleDownloadInvoice(invoice.id)}>
+                          Download invoice
                         </button>
-                      ) : null}
+                        {invoice.status !== 'paid' && invoice.status !== 'cancelled' ? (
+                          <button
+                            type="button"
+                            className="button primary"
+                            onClick={() => handleCheckout(invoice)}
+                            disabled={checkoutLoadingId === invoice.id}
+                          >
+                            {checkoutLoadingId === invoice.id ? 'Opening checkout…' : 'Pay securely'}
+                          </button>
+                        ) : null}
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -109,6 +129,11 @@ export default function PortalBillingPage() {
                       <p className="portal-card-copy"><strong>Method:</strong> {payment.payment_method}</p>
                       <p className="portal-card-copy"><strong>Date:</strong> {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : 'Pending'}</p>
                       <p className="portal-card-copy"><strong>Status:</strong> {payment.status}</p>
+                      {payment.status === 'paid' ? (
+                        <button type="button" className="button secondary" style={{ marginTop: 8 }} onClick={() => handleDownloadReceipt(payment.id)}>
+                          Download receipt
+                        </button>
+                      ) : null}
                     </article>
                   ))}
                 </div>

@@ -4,6 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import Stripe from 'stripe';
 
+import { loadPaymentReceiptPdfData } from '../../../../lib/billing/pdf/loaders';
+import { generateReceiptPdf } from '../../../../lib/billing/pdf/receipt';
+
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -396,13 +399,20 @@ export async function retryPaymentReceipt(adminSupabase: ReturnType<typeof creat
   `;
 
   try {
+    const receiptPdfData = await loadPaymentReceiptPdfData(adminSupabase, paymentRecord.id);
+    const receiptPdfBytes = await generateReceiptPdf(receiptPdfData);
+    const receiptBuffer = Buffer.from(receiptPdfBytes);
     const resend = new Resend(resendApiKey);
     const emailResult = await resend.emails.send(
       {
         from: fromEmail,
         to: [lead.email],
         subject: `Payment received for ${safeInvoiceNumber}`,
-        html: messageHtml
+        html: messageHtml,
+        attachments: [{
+          filename: `receipt-${safeInvoiceNumber.replace(/[^A-Za-z0-9.-]+/g, '-')}.pdf`,
+          content: receiptBuffer.toString('base64')
+        }]
       },
       { idempotencyKey: receiptKey }
     );
@@ -493,13 +503,20 @@ async function sendPaymentReceiptEmail(
   `;
 
   try {
+    const receiptPdfData = await loadPaymentReceiptPdfData(adminSupabase, paymentRecord.id);
+    const receiptPdfBytes = await generateReceiptPdf(receiptPdfData);
+    const receiptBuffer = Buffer.from(receiptPdfBytes);
     const resend = new Resend(resendApiKey);
     const emailResult = await resend.emails.send(
       {
         from: fromEmail,
         to: [lead.email],
         subject: `Payment received for ${safeInvoiceNumber}`,
-        html: messageHtml
+        html: messageHtml,
+        attachments: [{
+          filename: `receipt-${safeInvoiceNumber.replace(/[^A-Za-z0-9.-]+/g, '-')}.pdf`,
+          content: receiptBuffer.toString('base64')
+        }]
       },
       { idempotencyKey: receiptKey }
     );

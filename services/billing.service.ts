@@ -198,3 +198,35 @@ export async function createStripeCheckoutSession(invoiceId: string) {
   }
   return { data: json as { sessionId: string; url: string; invoice: ClientInvoice }, error: null as Error | null };
 }
+
+async function openPdfDownload(route: string, query: string, headers: Record<string, string>) {
+  const response = await fetch(`${route}?${query}`, { headers });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload?.error || 'We could not generate the PDF document.');
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export async function downloadMyInvoicePdf(invoiceId: string) {
+  const headers = await getAuthHeaders();
+  await openPdfDownload('/api/portal/billing/download', `invoiceId=${encodeURIComponent(invoiceId)}`, headers);
+}
+
+export async function downloadMyReceiptPdf(paymentId: string) {
+  const headers = await getAuthHeaders();
+  await openPdfDownload('/api/portal/billing/download', `paymentId=${encodeURIComponent(paymentId)}`, headers);
+}
+
+export async function downloadInvoicePdfForAdmin(invoiceId: string) {
+  const headers = await getAuthHeaders();
+  await openPdfDownload('/api/crm/billing/download', `invoiceId=${encodeURIComponent(invoiceId)}`, headers);
+}
+
+export async function downloadReceiptPdfForAdmin(paymentId: string) {
+  const headers = await getAuthHeaders();
+  await openPdfDownload('/api/crm/billing/download', `paymentId=${encodeURIComponent(paymentId)}`, headers);
+}

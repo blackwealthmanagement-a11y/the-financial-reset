@@ -24,7 +24,7 @@ import { runConsultationAutomation } from '../../../../services/workflow.service
 import { convertLeadToClient, findClientByLeadId } from '../../../../services/client.service';
 import { getConsultationEventsForLead } from '../../../../services/consultation.service';
 import { buildRequirementStatuses, getClientDocumentRequirements, getLeadDocuments, getRequiredDocumentCategories, getSignedDocumentUrl, updateDocumentStatus, uploadLeadDocument, upsertClientDocumentRequirements } from '../../../../services/document.service';
-import { createInvoice, getBillingProducts, getClientInvoices, recordManualPayment, updateInvoiceStatus } from '../../../../services/billing.service';
+import { createInvoice, downloadInvoicePdfForAdmin, downloadReceiptPdfForAdmin, getBillingProducts, getClientInvoices, recordManualPayment, updateInvoiceStatus } from '../../../../services/billing.service';
 import type { Lead } from '../../../../types/crm';
 import type { TaskRow } from '../../../../types/task';
 import type { ClientDocument, ClientDocumentRequirement, DocumentCategory } from '../../../../types/document';
@@ -681,6 +681,22 @@ export default function LeadDetailPage() {
     }
   }
 
+  async function handleDownloadInvoicePdf(invoiceId: string) {
+    try {
+      await downloadInvoicePdfForAdmin(invoiceId);
+    } catch (downloadError) {
+      setBillingError(downloadError instanceof Error ? downloadError.message : 'We could not download the invoice PDF.');
+    }
+  }
+
+  async function handleDownloadReceiptPdf(paymentId: string) {
+    try {
+      await downloadReceiptPdfForAdmin(paymentId);
+    } catch (downloadError) {
+      setBillingError(downloadError instanceof Error ? downloadError.message : 'We could not download the receipt PDF.');
+    }
+  }
+
   async function handleManualPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!paymentInvoiceId) {
@@ -1203,6 +1219,14 @@ export default function LeadDetailPage() {
                             <option value="cancelled">cancelled</option>
                           </select>
                         </label>
+                        <button type="button" className="button secondary" style={{ marginTop: 8 }} onClick={() => handleDownloadInvoicePdf(invoice.id)}>
+                          Download invoice PDF
+                        </button>
+                        {invoice.status === 'paid' ? (
+                          <button type="button" className="button secondary" style={{ marginTop: 8 }} onClick={() => handleDownloadReceiptPdf(invoice.id)}>
+                            Download receipt PDF
+                          </button>
+                        ) : null}
                       </article>
                     ))}
                   </div>

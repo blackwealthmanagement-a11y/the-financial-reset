@@ -6,7 +6,7 @@ interface RecentActivityCardProps {
 
 export function RecentActivityCard({ activity }: RecentActivityCardProps) {
   return (
-    <section className="portal-card portal-card-navy">
+    <section id="recent-activity" className="portal-card portal-card-navy">
       <div className="portal-card-header">
         <h3>Recent activity</h3>
         <span className="portal-pill">Latest 10</span>

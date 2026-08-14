@@ -28,13 +28,13 @@ export function getBrandingConfig(): BillingPdfBranding {
     process.env.SUPPORT_EMAIL ||
     process.env.INTAKE_NOTIFICATION_EMAIL ||
     process.env.RESEND_FROM_EMAIL?.match(/<([^>]+)>/)?.[1] ||
-    'support@the-financial-reset.com';
+    'blackwealthmanagement@gmail.com';
 
   return {
     brandName: 'The Financial Reset',
     website,
     supportEmail,
-    businessPhone: process.env.BUSINESS_PHONE || null,
+    businessPhone: process.env.BUSINESS_PHONE || '(470) 661-2258',
     footerText: 'Educational financial guidance and general wellness resources only.',
     accentColor: [0.04, 0.12, 0.2]
   };

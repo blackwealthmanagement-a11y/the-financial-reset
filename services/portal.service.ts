@@ -176,8 +176,8 @@ export async function getPortalDashboardData(): Promise<PortalDashboardData> {
     consultationSummary: leadRecord?.consultation_summary || 'Your consultation has not been scheduled.',
     tasks: tasks.length > 0 ? tasks : [{ title: 'No active tasks.', priority: 'Low', dueDate: 'N/A', completed: false }],
     activity: activity.length > 0 ? activity : [{ title: 'Portal ready', detail: 'Your activity will appear here once your lead record updates.', createdAt: 'Just now' }],
-    supportPhone: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_PHONE || '+1 (555) 010-0000',
-    supportEmail: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_EMAIL || 'support@the-financial-reset.com',
+    supportPhone: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_PHONE || '(470) 661-2258',
+    supportEmail: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_EMAIL || 'blackwealthmanagement@gmail.com',
     supportHours: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_HOURS || 'Mon–Fri 9am–5pm'
   };
 }
@@ -196,8 +196,8 @@ function fallbackDashboardData(): PortalDashboardData {
     consultationSummary: 'Your consultation has not been scheduled.',
     tasks: [{ title: 'No active tasks.', priority: 'Low', dueDate: 'N/A', completed: false }],
     activity: [{ title: 'Portal ready', detail: 'Your activity will appear here once your lead record updates.', createdAt: 'Just now' }],
-    supportPhone: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_PHONE || '+1 (555) 010-0000',
-    supportEmail: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_EMAIL || 'support@the-financial-reset.com',
+    supportPhone: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_PHONE || '(470) 661-2258',
+    supportEmail: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_EMAIL || 'blackwealthmanagement@gmail.com',
     supportHours: process.env.NEXT_PUBLIC_PORTAL_SUPPORT_HOURS || 'Mon–Fri 9am–5pm'
   };
 }

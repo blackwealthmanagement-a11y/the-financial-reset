@@ -2019,3 +2019,57 @@ h1 {
     transform: none !important;
   }
 }
+
+.lesson-content {
+  line-height: 1.9;
+  font-size: 18px;
+  color: #243244;
+}
+
+.lesson-content h1 {
+  font-size: 2.5rem;
+  margin: 2rem 0 1rem;
+  font-weight: 700;
+}
+
+.lesson-content h2 {
+  font-size: 2rem;
+  margin: 2rem 0 1rem;
+  font-weight: 700;
+}
+
+.lesson-content h3 {
+  font-size: 1.5rem;
+  margin: 1.5rem 0 .75rem;
+  font-weight: 600;
+}
+
+.lesson-content p {
+  margin-bottom: 1.5rem;
+}
+
+.lesson-content ul,
+.lesson-content ol {
+  margin: 1rem 0 1.5rem 2rem;
+}
+
+.lesson-content li {
+  margin-bottom: .5rem;
+}
+
+.lesson-content hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.lesson-content strong {
+  font-weight: 700;
+}
+
+.lesson-content blockquote {
+  border-left: 4px solid #d4a94d;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #555;
+}

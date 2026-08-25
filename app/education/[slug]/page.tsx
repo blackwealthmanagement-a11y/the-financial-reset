@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { marked } from 'marked';
 import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
 import type { EducationCategory, EducationLesson, LessonResource } from '../../../types/education';
@@ -70,7 +71,12 @@ export default function EducationLessonPage() {
               {lesson.reading_time_minutes ? <span className="portal-pill">{lesson.reading_time_minutes} min read</span> : null}
               {lesson.featured ? <span className="portal-pill">Featured</span> : null}
             </div>
-            <div style={{ marginTop: 24, lineHeight: 1.75 }} dangerouslySetInnerHTML={{ __html: lesson.content.replace(/\n/g, '<br />') }} />
+            <div
+              className="lesson-content"
+              dangerouslySetInnerHTML={{
+                __html: marked.parse(lesson.content) as string,
+              }}
+            />
             {lesson.key_takeaways && lesson.key_takeaways.length > 0 ? (
               <div style={{ marginTop: 24 }}>
                 <h3>Key takeaways</h3>
